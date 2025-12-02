@@ -1,0 +1,5 @@
+{
+  "name": "OrcaInsta - Markdown to Mobile Image",
+  "description": "A beautiful Markdown editor that exports text as mobile-optimized images. Features intelligent spacing correction for Chinese punctuation using both Regex and Gemini AI.",
+  "requestFramePermissions": []
+}
