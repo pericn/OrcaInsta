@@ -31,7 +31,7 @@ export const polishMarkdown = async (text: string): Promise<string> => {
       contents: prompt,
     });
     
-    return response.text.trim();
+    return response.text?.trim() || "";
   } catch (error) {
     console.error("Gemini Polish Error:", error);
     throw error;
