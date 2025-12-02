@@ -1,12 +1,10 @@
 import React from 'react';
-import { Download, Wand2, RefreshCw, Type, AlignJustify, CaseUpper, ChevronDown } from 'lucide-react';
+import { Download, Type, AlignJustify, CaseUpper, ChevronDown } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
 interface ToolbarProps {
   onAutoSpace: () => void;
-  onAIPolish: () => void;
   onExport: () => void;
-  isProcessing: boolean;
   onThemeChange: (themeId: string) => void;
   currentThemeId: string;
   themes: ThemeConfig[];
@@ -16,9 +14,7 @@ interface ToolbarProps {
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
   onAutoSpace, 
-  onAIPolish, 
   onExport, 
-  isProcessing,
   onThemeChange,
   currentThemeId,
   themes,
@@ -100,21 +96,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       >
         <Type size={14} />
         <span className="hidden sm:inline">Space Fix</span>
-      </button>
-
-      <button
-        onClick={onAIPolish}
-        disabled={isProcessing}
-        className={`
-          flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-          ${isProcessing 
-            ? 'bg-purple-100 text-purple-400 cursor-not-allowed' 
-            : 'bg-purple-50 text-purple-600 hover:bg-purple-100'}
-        `}
-        title="Smart polish using Gemini AI"
-      >
-        {isProcessing ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
-        <span className="hidden sm:inline">AI Polish</span>
       </button>
 
       <button

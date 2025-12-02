@@ -4,12 +4,10 @@ import Toolbar from './components/Toolbar';
 import PreviewCard from './components/PreviewCard';
 import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
-import { polishMarkdown } from './services/geminiService';
 import { TypographyConfig } from './types';
 
 const App: React.FC = () => {
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [themeIndex, setThemeIndex] = useState<number>(0);
   const [typography, setTypography] = useState<TypographyConfig>({
     fontSize: 'base',
@@ -25,19 +23,6 @@ const App: React.FC = () => {
     const newText = insertSpaceInMarkdown(markdown);
     setMarkdown(newText);
   }, [markdown]);
-
-  const handleAIPolish = useCallback(async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    try {
-      const polished = await polishMarkdown(markdown);
-      setMarkdown(polished);
-    } catch (error) {
-      alert("AI Processing failed. Please check your API Key configuration.");
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [markdown, isProcessing]);
 
   const handleExport = useCallback(async () => {
     if (previewRef.current === null) {
@@ -97,9 +82,7 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen bg-gray-50">
       <Toolbar 
         onAutoSpace={handleAutoSpace}
-        onAIPolish={handleAIPolish}
         onExport={handleExport}
-        isProcessing={isProcessing}
         onThemeChange={handleThemeChange}
         currentThemeId={currentTheme.id}
         themes={THEMES}
