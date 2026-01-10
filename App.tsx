@@ -55,6 +55,7 @@ const App: React.FC = () => {
         // CRITICAL: Skip embedding fonts to avoid "Cannot access rules" (CORS) errors with Google Fonts
         skipFonts: true,
         // Ignore resources that fail to load (e.g. blocked images) so export still finishes
+        // @ts-expect-error - skipOnError exists in library but missing in types
         skipOnError: true,
         // Filter out iframes/scripts but ALLOW stylesheets to ensure background styles are captured
         filter: (node) => {
