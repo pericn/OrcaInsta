@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import Toolbar from './components/Toolbar';
 import PreviewCard from './components/PreviewCard';
+import { BottomBar } from './components/BottomBar';
 import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
 import { TypographyConfig } from './types';
@@ -22,15 +23,25 @@ const App: React.FC = () => {
 
   const currentTheme = THEMES[themeIndex];
 
-  const handleAutoSpace = useCallback(() => {
-    const newText = insertSpaceInMarkdown(markdown);
-    setMarkdown(newText);
-  }, [markdown]);
+  // Standard change handler - no auto-formatting while typing to avoid cursor jumping
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMarkdown(e.target.value);
+  };
+
+  // Auto-format when the user finishes editing (on blur)
+  const handleBlur = () => {
+    setMarkdown((prev) => insertSpaceInMarkdown(prev));
+  };
 
   const handleExport = useCallback(async () => {
     if (previewRef.current === null) {
       return;
     }
+    
+    // Ensure text is formatted before export
+    setMarkdown((prev) => insertSpaceInMarkdown(prev));
+    // Small delay to allow React to render the formatted text before capturing
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
       // 1. Temporarily remove transform scale to capture at full resolution
@@ -81,9 +92,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Toolbar 
-        onAutoSpace={handleAutoSpace}
         onExport={handleExport}
         onThemeChange={handleThemeChange}
         currentThemeId={currentTheme.id}
@@ -94,7 +104,7 @@ const App: React.FC = () => {
         onTabChange={setActiveMobileTab}
       />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0">
         {/* Editor Pane */}
         <div className={`
           w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10
@@ -103,7 +113,8 @@ const App: React.FC = () => {
           <textarea
             className="w-full h-full p-6 resize-none focus:outline-none font-mono text-sm leading-6 text-gray-700 bg-transparent"
             value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
+            onChange={handleTextChange}
+            onBlur={handleBlur}
             placeholder="Type your markdown here..."
             spellCheck={false}
           />
@@ -114,7 +125,7 @@ const App: React.FC = () => {
           w-full md:w-1/2 h-full bg-gray-100 overflow-y-auto overflow-x-hidden relative flex flex-col items-center
           ${activeMobileTab === 'preview' ? 'flex' : 'hidden md:flex'}
         `}>
-            <div className="my-auto py-12 w-full flex justify-center">
+            <div className="my-auto w-full flex justify-center">
               <PreviewCard 
                 ref={previewRef} 
                 content={markdown} 
@@ -125,6 +136,13 @@ const App: React.FC = () => {
             </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Bar */}
+      <BottomBar 
+        activeTab={activeMobileTab} 
+        onTabChange={setActiveMobileTab}
+        onExport={handleExport}
+      />
     </div>
   );
 };

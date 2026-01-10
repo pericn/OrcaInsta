@@ -1,9 +1,8 @@
 import React from 'react';
-import { Download, Type, AlignJustify, CaseUpper, ChevronDown } from 'lucide-react';
+import { Download, AlignJustify, CaseUpper, ChevronDown } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
 interface ToolbarProps {
-  onAutoSpace: () => void;
   onExport: () => void;
   onThemeChange: (themeId: string) => void;
   currentThemeId: string;
@@ -15,7 +14,6 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
-  onAutoSpace, 
   onExport, 
   onThemeChange,
   currentThemeId,
@@ -46,34 +44,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
-      <div className="flex items-center gap-1 mr-auto">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent px-1 hidden sm:block">
+      <div className="flex items-center gap-2 mr-auto">
+        <img src="/logo.png" alt="OrcaInsta" className="w-8 h-8 object-contain" />
+        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
           OrcaInsta
         </h1>
-
-        {/* Mobile Tab Toggle */}
-        <div className="flex md:hidden bg-gray-100 p-0.5 rounded-lg border border-gray-200 ml-1">
-          <button
-            onClick={() => onTabChange('editor')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-              activeMobileTab === 'editor' 
-                ? 'bg-white text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onTabChange('preview')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-              activeMobileTab === 'preview' 
-                ? 'bg-white text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Preview
-          </button>
-        </div>
       </div>
 
       <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
@@ -115,20 +90,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       </div>
 
-      <div className="h-6 w-px bg-gray-200 mx-1"></div>
-
-      <button
-        onClick={onAutoSpace}
-        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Fix Chinese Spacing"
-      >
-        <Type size={14} />
-        <span className="hidden sm:inline">Space Fix</span>
-      </button>
-
+      {/* Export Button - Hidden on Mobile (moved to BottomBar) */}
       <button
         onClick={onExport}
-        className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm ml-2"
+        className="hidden md:flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm ml-2"
       >
         <Download size={14} />
         <span>Export</span>
