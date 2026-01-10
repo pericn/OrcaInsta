@@ -14,6 +14,9 @@ const App: React.FC = () => {
     lineHeight: 'loose'
   });
   
+  // Mobile Layout State
+  const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
+  
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -40,16 +43,15 @@ const App: React.FC = () => {
         backgroundColor: 'transparent',
         // CRITICAL: Skip embedding fonts to avoid "Cannot access rules" (CORS) errors with Google Fonts
         skipFonts: true,
-        // Filter out external stylesheets/iframes to further prevent CORS errors
+        // Ignore resources that fail to load (e.g. blocked images) so export still finishes
+        skipOnError: true,
+        // Filter out iframes/scripts but ALLOW stylesheets to ensure background styles are captured
         filter: (node) => {
           // Ensure we are dealing with an Element node
           if (node.nodeType !== 1) {
             return true; 
           }
           const el = node as HTMLElement;
-          if (el.tagName === 'LINK' && (el as HTMLLinkElement).rel === 'stylesheet') {
-            return false;
-          }
           if (el.tagName === 'IFRAME' || el.tagName === 'SCRIPT') {
              return false;
           }
@@ -88,11 +90,16 @@ const App: React.FC = () => {
         themes={THEMES}
         typography={typography}
         setTypography={setTypography}
+        activeMobileTab={activeMobileTab}
+        onTabChange={setActiveMobileTab}
       />
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Editor Pane */}
-        <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10">
+        <div className={`
+          w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10
+          ${activeMobileTab === 'editor' ? 'flex' : 'hidden md:flex'}
+        `}>
           <textarea
             className="w-full h-full p-6 resize-none focus:outline-none font-mono text-sm leading-6 text-gray-700 bg-transparent"
             value={markdown}
@@ -103,7 +110,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Preview Pane - Improved Layout for Long Images */}
-        <div className="w-full md:w-1/2 h-1/2 md:h-full bg-gray-100 overflow-y-auto overflow-x-hidden relative flex flex-col items-center">
+        <div className={`
+          w-full md:w-1/2 h-full bg-gray-100 overflow-y-auto overflow-x-hidden relative flex flex-col items-center
+          ${activeMobileTab === 'preview' ? 'flex' : 'hidden md:flex'}
+        `}>
             <div className="my-auto py-12 w-full flex justify-center">
               <PreviewCard 
                 ref={previewRef} 

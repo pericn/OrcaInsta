@@ -10,6 +10,8 @@ interface ToolbarProps {
   themes: ThemeConfig[];
   typography: TypographyConfig;
   setTypography: (config: TypographyConfig) => void;
+  activeMobileTab: 'editor' | 'preview';
+  onTabChange: (tab: 'editor' | 'preview') => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -19,7 +21,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   currentThemeId,
   themes,
   typography,
-  setTypography
+  setTypography,
+  activeMobileTab,
+  onTabChange
 }) => {
   
   const cycleFontSize = () => {
@@ -46,6 +50,30 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent px-1 hidden sm:block">
           OrcaInsta
         </h1>
+
+        {/* Mobile Tab Toggle */}
+        <div className="flex md:hidden bg-gray-100 p-0.5 rounded-lg border border-gray-200 ml-1">
+          <button
+            onClick={() => onTabChange('editor')}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              activeMobileTab === 'editor' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onTabChange('preview')}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              activeMobileTab === 'preview' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Preview
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
