@@ -20,7 +20,7 @@ interface DeepSeekResponse {
 
 export class DeepSeekService {
   private static readonly CONFIG: DeepSeekConfig = {
-    apiKey: 'sk-6e6f2d8855784a869444e17c9de940a3',
+    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY || '',
     baseURL: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat'
   };

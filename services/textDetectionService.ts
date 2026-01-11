@@ -23,28 +23,8 @@ export class TextDetectionService {
 
   // Check if text should show the format button
   static shouldShowFormatButton(text: string): boolean {
-    // Must be long enough (>50 characters)
-    if (text.length <= 50) {
-      return false;
-    }
-
-    // Must not contain markdown syntax
-    if (this.hasMarkdownSyntax(text)) {
-      return false;
-    }
-
-    // Additional heuristics for meaningful content
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
-
-    // Must have at least 2 lines or be a long single line
-    if (lines.length < 2 && text.length < 100) {
-      return false;
-    }
-
-    // Check for conversational patterns (optional enhancement)
-    const hasConversationalPatterns = this.hasConversationalPatterns(text);
-
-    return true; // For now, just check basic criteria
+    // Show button for any non-empty text
+    return text.trim().length > 0;
   }
 
   // Optional: detect conversational patterns (AI chat, Q&A, etc.)
