@@ -3,6 +3,7 @@ import { toPng } from 'html-to-image';
 import Toolbar from './components/Toolbar';
 import PreviewCard from './components/PreviewCard';
 import { BottomBar } from './components/BottomBar';
+import { FormatButton } from './components/FormatButton';
 import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
 import { StorageService } from './services/storageService';
@@ -21,6 +22,9 @@ const App: React.FC = () => {
 
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Formatting state
+  const [formatError, setFormatError] = useState<string>('');
 
   const currentTheme = THEMES[themeIndex];
 
@@ -66,6 +70,19 @@ const App: React.FC = () => {
       setMarkdown('');
       StorageService.saveMarkdown(''); // Immediately save empty content
     }
+  }, []);
+
+  // Format text handler
+  const handleFormatText = useCallback((formattedText: string) => {
+    setMarkdown(formattedText);
+    setFormatError(''); // Clear any previous errors
+  }, []);
+
+  // Format error handler
+  const handleFormatError = useCallback((error: string) => {
+    setFormatError(error);
+    // Show error to user (you could also use a toast notification)
+    alert(`格式化失败: ${error}`);
   }, []);
 
   // Standard change handler - no auto-formatting while typing to avoid cursor jumping
@@ -154,7 +171,7 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0">
         {/* Editor Pane */}
         <div className={`
-          w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10
+          w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10 relative
           ${activeMobileTab === 'editor' ? 'flex' : 'hidden md:flex'}
         `}>
           <textarea
@@ -164,6 +181,13 @@ const App: React.FC = () => {
             onBlur={handleBlur}
             placeholder="Type your markdown here..."
             spellCheck={false}
+          />
+
+          {/* Floating Format Button */}
+          <FormatButton
+            text={markdown}
+            onFormat={handleFormatText}
+            onError={handleFormatError}
           />
         </div>
 

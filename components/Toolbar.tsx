@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, AlignJustify, CaseUpper, ChevronDown, Trash2 } from 'lucide-react';
+import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2 } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
 interface ToolbarProps {
@@ -78,7 +78,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-all"
           title="Toggle Font Size"
         >
-          <CaseUpper size={14} />
+          <ALargeSmall size={14} />
           <span className="uppercase">{typography.fontSize}</span>
         </button>
 
@@ -87,7 +87,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-all"
           title="Toggle Line Height"
         >
-          <AlignJustify size={14} />
+          <ListChecks size={14} />
           <span className="capitalize hidden sm:inline">{typography.lineHeight}</span>
         </button>
       </div>
