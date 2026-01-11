@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, AlignJustify, CaseUpper, ChevronDown } from 'lucide-react';
+import { Download, AlignJustify, CaseUpper, ChevronDown, Trash2 } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
 interface ToolbarProps {
@@ -11,17 +11,19 @@ interface ToolbarProps {
   setTypography: (config: TypographyConfig) => void;
   activeMobileTab: 'editor' | 'preview';
   onTabChange: (tab: 'editor' | 'preview') => void;
+  onClearContent: () => void;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ 
-  onExport, 
+const Toolbar: React.FC<ToolbarProps> = ({
+  onExport,
   onThemeChange,
   currentThemeId,
   themes,
   typography,
   setTypography,
   activeMobileTab,
-  onTabChange
+  onTabChange,
+  onClearContent
 }) => {
   
   const cycleFontSize = () => {
@@ -89,6 +91,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
           <span className="capitalize hidden sm:inline">{typography.lineHeight}</span>
         </button>
       </div>
+
+      {/* Clear Content Button */}
+      <button
+        onClick={onClearContent}
+        className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors border border-red-200 ml-2"
+        title="Clear Content"
+      >
+        <Trash2 size={14} />
+        <span>Clear</span>
+      </button>
 
       {/* Export Button - Hidden on Mobile (moved to BottomBar) */}
       <button

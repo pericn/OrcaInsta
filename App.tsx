@@ -1,10 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import Toolbar from './components/Toolbar';
 import PreviewCard from './components/PreviewCard';
 import { BottomBar } from './components/BottomBar';
 import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
+import { StorageService } from './services/storageService';
 import { TypographyConfig } from './types';
 
 const App: React.FC = () => {
@@ -14,14 +15,58 @@ const App: React.FC = () => {
     fontSize: 'base',
     lineHeight: 'loose'
   });
-  
+
   // Mobile Layout State
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
-  
+
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES[themeIndex];
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedData = StorageService.loadData();
+    if (savedData) {
+      setMarkdown(savedData.markdown);
+
+      // Restore theme if saved
+      if (savedData.themeId) {
+        const savedThemeIndex = THEMES.findIndex(t => t.id === savedData.themeId);
+        if (savedThemeIndex !== -1) {
+          setThemeIndex(savedThemeIndex);
+        }
+      }
+
+      // Restore typography if saved
+      if (savedData.typography) {
+        setTypography({
+          fontSize: savedData.typography.fontSize || 'base',
+          lineHeight: savedData.typography.lineHeight || 'loose'
+        });
+      }
+    }
+  }, []);
+
+  // Auto-save content changes
+  useEffect(() => {
+    StorageService.autoSave({
+      markdown,
+      themeId: currentTheme.id,
+      typography: {
+        ...typography,
+        fontFamily: 'sans' // Default for now
+      }
+    });
+  }, [markdown, currentTheme.id, typography]);
+
+  // Clear content handler
+  const handleClearContent = useCallback(() => {
+    if (window.confirm('确定要清除所有内容吗？此操作无法撤销。')) {
+      setMarkdown('');
+      StorageService.saveMarkdown(''); // Immediately save empty content
+    }
+  }, []);
 
   // Standard change handler - no auto-formatting while typing to avoid cursor jumping
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -94,7 +139,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      <Toolbar 
+      <Toolbar
         onExport={handleExport}
         onThemeChange={handleThemeChange}
         currentThemeId={currentTheme.id}
@@ -103,6 +148,7 @@ const App: React.FC = () => {
         setTypography={setTypography}
         activeMobileTab={activeMobileTab}
         onTabChange={setActiveMobileTab}
+        onClearContent={handleClearContent}
       />
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0">
@@ -139,10 +185,11 @@ const App: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Bar */}
-      <BottomBar 
-        activeTab={activeMobileTab} 
+      <BottomBar
+        activeTab={activeMobileTab}
         onTabChange={setActiveMobileTab}
         onExport={handleExport}
+        onClearContent={handleClearContent}
       />
     </div>
   );
