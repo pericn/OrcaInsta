@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2 } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
@@ -25,7 +25,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onTabChange,
   onClearContent
 }) => {
-  
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Track window width changes
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const cycleFontSize = () => {
     const sizes: TypographyConfig['fontSize'][] = ['sm', 'base', 'lg', 'xl'];
     const currentIdx = sizes.indexOf(typography.fontSize);
@@ -74,7 +85,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       {/* Format Controls - Show on Preview page for mobile, always show on desktop */}
-      {activeMobileTab === 'preview' || window.innerWidth >= 768 ? (
+      {activeMobileTab === 'preview' || windowWidth >= 768 ? (
         <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
           <div className="relative group">
             <div className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 pointer-events-none z-10"></div>
@@ -116,7 +127,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       ) : null}
 
       {/* Clear Content Button - Show on Editor page for mobile, always show on desktop */}
-      {activeMobileTab === 'editor' || window.innerWidth >= 768 ? (
+      {activeMobileTab === 'editor' || windowWidth >= 768 ? (
         <button
           onClick={onClearContent}
           className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors border border-red-200 ml-2"
