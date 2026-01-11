@@ -80,7 +80,7 @@ function init() {
 export const THEMES: ThemeConfig[] = [
   {
     id: 'simple-light',
-    name: 'Simple Light',
+    name: '昼',
     background: 'bg-white',
     textColor: 'text-slate-800',
     accentColor: 'text-blue-600',
@@ -90,7 +90,7 @@ export const THEMES: ThemeConfig[] = [
   },
   {
     id: 'simple-dark',
-    name: 'Midnight',
+    name: '夜',
     background: 'bg-slate-900',
     textColor: 'text-slate-100',
     accentColor: 'text-sky-400',
@@ -100,7 +100,7 @@ export const THEMES: ThemeConfig[] = [
   },
   {
     id: 'paper',
-    name: 'Warm Paper',
+    name: '笺',
     background: 'bg-[#f8f4e9]',
     textColor: 'text-stone-800',
     accentColor: 'text-orange-700',
@@ -110,7 +110,7 @@ export const THEMES: ThemeConfig[] = [
   },
   {
     id: 'forest',
-    name: 'Forest Mist',
+    name: '林',
     background: 'bg-emerald-900',
     textColor: 'text-emerald-50',
     accentColor: 'text-emerald-300',
@@ -120,7 +120,7 @@ export const THEMES: ThemeConfig[] = [
   },
   {
     id: 'gradient-purple',
-    name: 'Sunset',
+    name: '霞',
     background: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500',
     textColor: 'text-white',
     accentColor: 'text-yellow-200',

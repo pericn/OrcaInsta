@@ -43,6 +43,11 @@ export class DeepSeekService {
 
   static async formatToMarkdown(text: string): Promise<string> {
     try {
+      // Check if API key is available
+      if (!this.CONFIG.apiKey || this.CONFIG.apiKey === '') {
+        throw new Error('API key 未配置，请联系开发者');
+      }
+
       const prompt = this.FORMATTING_PROMPT.replace('{text}', text);
 
       const messages: DeepSeekMessage[] = [
@@ -52,7 +57,9 @@ export class DeepSeekService {
         }
       ];
 
+      console.log('Calling DeepSeek API...');
       const response = await this.callAPI(messages);
+      console.log('DeepSeek API response received');
 
       // Extract the formatted text from the response
       const formattedText = this.parseResponse(response);
@@ -66,7 +73,19 @@ export class DeepSeekService {
       return formattedText;
     } catch (error) {
       console.error('DeepSeek API error:', error);
-      throw new Error('格式化失败，请检查网络连接或API配置');
+
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error('网络连接失败，请检查网络或稍后重试');
+      }
+      if (error instanceof Error && error.message.includes('API key 未配置')) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('API request failed')) {
+        throw new Error('API 请求失败，请稍后重试');
+      }
+
+      throw new Error('格式化失败，请稍后重试');
     }
   }
 

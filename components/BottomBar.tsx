@@ -23,7 +23,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({ activeTab, onTabChange, on
           `}
         >
           <PenLine size={16} />
-          <span>Editor</span>
+          <span>编辑</span>
         </button>
         <button
           onClick={() => onTabChange('preview')}
@@ -35,7 +35,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({ activeTab, onTabChange, on
           `}
         >
           <Eye size={16} />
-          <span>Preview</span>
+          <span>预览</span>
         </button>
       </div>
 
