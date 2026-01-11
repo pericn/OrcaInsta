@@ -8,6 +8,7 @@ import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
 import { StorageService } from './services/storageService';
 import { TypographyConfig } from './types';
+import { useViewportHeight } from './hooks/useViewportHeight';
 
 const App: React.FC = () => {
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
@@ -19,6 +20,9 @@ const App: React.FC = () => {
 
   // Mobile Layout State
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
+
+  // Dynamic viewport height for mobile keyboard handling
+  const viewportHeight = useViewportHeight();
 
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
@@ -155,7 +159,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+    <div
+      className="flex flex-col bg-gray-50 overflow-hidden"
+      style={{ height: `${viewportHeight}px` }}
+    >
       <Toolbar
         onExport={handleExport}
         onThemeChange={handleThemeChange}

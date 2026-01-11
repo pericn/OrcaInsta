@@ -25,21 +25,7 @@ export class DeepSeekService {
     model: 'deepseek-chat'
   };
 
-  private static readonly FORMATTING_PROMPT = `请将以下纯文本转换为美观的Markdown格式。
-要求：
-1. 保持原文内容完全不变，不添加、不删除、不修改任何文字
-2. 只添加适当的Markdown标记来美化格式
-3. 根据内容语义智能选择合适的格式：
-   - 标题 (# ## ###)
-   - 列表 (- * 1. 2. 3.)
-   - 强调 (**bold** *italic*)
-   - 代码块 (\`\`\`language)
-   - 引用 (>)
-
-原文内容：
-{text}
-
-请返回纯Markdown格式的结果，不要包含其他说明。`;
+  private static readonly FORMATTING_PROMPT = `{你是一个资深文字排版师，擅长使用 markdown 文案排版。理解下面的文字内容，并增加 markdown 标记，增加其可读性。# 原则：1. （！非常重要）**确保**不可更改原文本的任何内容，仅增加标记符号。 2. 中文**不可以**使用斜体标记。 3. 直接回复我符号标记后的内容，不需要和我交互。# 内容： }{text}`;
 
   static async formatToMarkdown(text: string): Promise<string> {
     try {
@@ -63,12 +49,6 @@ export class DeepSeekService {
 
       // Extract the formatted text from the response
       const formattedText = this.parseResponse(response);
-
-      // Validate that the original content is preserved
-      if (!this.validateContentPreservation(text, formattedText)) {
-        console.warn('AI formatting may have altered content, falling back to original');
-        return text; // Fallback to original if content was modified
-      }
 
       return formattedText;
     } catch (error) {

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Undo2, Loader2 } from 'lucide-react';
 import { TextDetectionService } from '../services/textDetectionService';
 import { DeepSeekService } from '../services/deepseekService';
+import { insertSpaceInMarkdown } from '../services/textUtils';
 
 interface FormatButtonProps {
   text: string;
@@ -43,10 +44,13 @@ export const FormatButton: React.FC<FormatButtonProps> = ({
       setOriginalText(text);
 
       // Call DeepSeek API to format text
-      const formattedText = await DeepSeekService.formatToMarkdown(text);
+      const aiFormattedText = await DeepSeekService.formatToMarkdown(text);
+
+      // Auto-apply space fix logic after AI formatting
+      const finalFormattedText = insertSpaceInMarkdown(aiFormattedText);
 
       // Update the text in parent component
-      onFormat(formattedText);
+      onFormat(finalFormattedText);
 
       // Mark as formatted
       setIsFormatted(true);
@@ -74,7 +78,7 @@ export const FormatButton: React.FC<FormatButtonProps> = ({
   }
 
   return (
-    <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 ${className}`}>
+    <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40 ${className}`}>
       <button
         onClick={isFormatted ? handleUndo : handleFormat}
         disabled={isLoading}

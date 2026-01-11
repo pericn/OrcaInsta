@@ -88,38 +88,40 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                           font-style: normal;
                        }
                        
-                       .prose h1 { 
-                          font-weight: 800; 
+                       .prose h1 {
+                          font-weight: 700;
+                          font-size: 1.6em;
                           margin-top: 1em;
                           margin-bottom: 0.8em;
                           padding-bottom: 0.3em;
                           border-bottom: 2px solid currentColor;
                           opacity: 0.95;
                        }
-                       .prose h2 { 
-                          font-weight: 700; 
-                          margin-top: 1.6em; 
+                       .prose h2 {
+                          font-weight: 600;
+                          font-size: 1.4em;
+                          margin-top: 1.6em;
                           margin-bottom: 0.6em;
                           padding-left: 0.5em;
                           border-left: 4px solid currentColor;
-                          opacity: 0.9; 
+                          opacity: 0.9;
                        }
                        .prose h3 {
-                          font-weight: 700;
-                          font-size: 1.4em;
+                          font-weight: 600;
+                          font-size: 1.3em;
                           margin-top: 1.8em;
                           margin-bottom: 0.8em;
                           opacity: 0.9;
                        }
                        .prose h4 {
-                          font-weight: 600;
-                          font-size: 1.25em;
+                          font-weight: 500;
+                          font-size: 1.15em;
                           margin-top: 1.6em;
                           margin-bottom: 0.6em;
                           opacity: 0.85;
                        }
                        .prose h5 {
-                          font-weight: 600;
+                          font-weight: 500;
                           font-size: 1.05em;
                           margin-top: 1.4em;
                           margin-bottom: 0.4em;

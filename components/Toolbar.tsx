@@ -81,7 +81,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <select
               value={currentThemeId}
               onChange={(e) => onThemeChange(e.target.value)}
-              className="appearance-none pl-7 pr-8 py-1.5 text-xs font-medium text-gray-600 bg-transparent hover:bg-white hover:shadow-sm rounded-md transition-all border-none focus:ring-0 cursor-pointer outline-none w-32"
+              className="appearance-none pl-7 pr-8 py-1.5 text-xs font-medium text-gray-600 bg-transparent hover:bg-white hover:shadow-sm rounded-md transition-all border-none focus:ring-0 cursor-pointer outline-none w-20"
               title="选择主题"
             >
               {themes.map((theme) => (
@@ -110,7 +110,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="切换行高"
           >
             <ListChecks size={14} />
-            <span className="capitalize hidden sm:inline">{getLineHeightLabel(typography.lineHeight)}</span>
+            <span className="capitalize">{getLineHeightLabel(typography.lineHeight)}</span>
           </button>
         </div>
       ) : null}
