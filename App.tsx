@@ -30,6 +30,9 @@ const App: React.FC = () => {
   // Formatting state
   const [formatError, setFormatError] = useState<string>('');
 
+  // Shadow control for export
+  const [showShadow, setShowShadow] = useState<boolean>(true);
+
   const currentTheme = THEMES[themeIndex];
 
   // Load saved data on component mount
@@ -103,21 +106,28 @@ const App: React.FC = () => {
     if (previewRef.current === null) {
       return;
     }
-    
+
     // Ensure text is formatted before export
     setMarkdown((prev) => insertSpaceInMarkdown(prev));
     // Small delay to allow React to render the formatted text before capturing
     await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
-      // 1. Temporarily remove transform scale to capture at full resolution
-      const originalTransform = previewRef.current.style.transform;
-      previewRef.current.style.transform = 'scale(1)';
+      // 1. Temporarily hide shadow for export
+      setShowShadow(false);
+      // Wait for React to re-render
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-      const dataUrl = await toPng(previewRef.current, { 
-        cacheBust: true, 
-        pixelRatio: 2, // Retina quality
-        backgroundColor: 'transparent',
+      // 2. Temporarily modify transform for export
+      const originalTransform = previewRef.current.style.transform;
+
+      // Set scale to achieve 1080px width (1080/375 ≈ 2.88)
+      previewRef.current.style.transform = 'scale(2.88)';
+
+      const dataUrl = await toPng(previewRef.current, {
+        cacheBust: true,
+        pixelRatio: 1, // No additional pixel ratio since we're scaling
+        backgroundColor: 'transparent', // Let the theme background show through
         // CRITICAL: Skip embedding fonts to avoid "Cannot access rules" (CORS) errors with Google Fonts
         skipFonts: true,
         // Ignore resources that fail to load (e.g. blocked images) so export still finishes
@@ -127,7 +137,7 @@ const App: React.FC = () => {
         filter: (node) => {
           // Ensure we are dealing with an Element node
           if (node.nodeType !== 1) {
-            return true; 
+            return true;
           }
           const el = node as HTMLElement;
           if (el.tagName === 'IFRAME' || el.tagName === 'SCRIPT') {
@@ -137,10 +147,11 @@ const App: React.FC = () => {
         }
       });
 
-      // 2. Restore transform
+      // 3. Restore original transform and shadow
       previewRef.current.style.transform = originalTransform;
+      setShowShadow(true);
 
-      // 3. Download
+      // 4. Download
       const link = document.createElement('a');
       link.download = `orca-insta-${Date.now()}.png`;
       link.href = dataUrl;
@@ -148,6 +159,8 @@ const App: React.FC = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to generate image. Please try again.');
+      // Ensure shadow is restored even on error
+      setShowShadow(true);
     }
   }, [previewRef]);
 
@@ -204,12 +217,13 @@ const App: React.FC = () => {
           ${activeMobileTab === 'preview' ? 'flex' : 'hidden md:flex'}
         `}>
             <div className="my-auto w-full flex justify-center">
-              <PreviewCard 
-                ref={previewRef} 
-                content={markdown} 
+              <PreviewCard
+                ref={previewRef}
+                content={markdown}
                 theme={currentTheme}
                 typography={typography}
                 scale={1} // Base scale
+                showShadow={showShadow}
               />
             </div>
         </div>

@@ -7,6 +7,7 @@ export interface ThemeConfig {
   cardBg: string;
   cardBorder: string;
   quoteBg: string;
+  shadowColor?: string;
 }
 
 export interface TypographyConfig {

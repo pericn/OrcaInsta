@@ -10,10 +10,11 @@ interface PreviewCardProps {
   theme: ThemeConfig;
   typography: TypographyConfig;
   scale: number;
+  showShadow?: boolean;
 }
 
 const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
-  ({ content, theme, typography, scale }, ref) => {
+  ({ content, theme, typography, scale, showShadow = true }, ref) => {
     
     // Clean content for display (removes [cite] tags)
     const displayContent = useMemo(() => cleanCitations(content), [content]);
@@ -58,13 +59,13 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                     >
                       <div
                         className={`
-                          relative flex flex-col flex-shrink-0 
+                          relative flex flex-col flex-shrink-0
                           w-[375px] sm:w-[450px]
                           ${theme.background}
-                          shadow-2xl
+                          ${showShadow ? (theme.shadowColor || 'shadow-2xl') : ''}
                         `}
                         style={{
-                          fontSize: fontSizeStyle[typography.fontSize], 
+                          fontSize: fontSizeStyle[typography.fontSize],
                         }}
                       >
                          {/* Inner Card content */}
@@ -90,7 +91,7 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                        
                        .prose h1 {
                           font-weight: 700;
-                          font-size: 1.6em;
+                          font-size: 1.4em;
                           margin-top: 1em;
                           margin-bottom: 0.8em;
                           padding-bottom: 0.3em;
@@ -99,7 +100,7 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                        }
                        .prose h2 {
                           font-weight: 600;
-                          font-size: 1.4em;
+                          font-size: 1.25em;
                           margin-top: 1.6em;
                           margin-bottom: 0.6em;
                           padding-left: 0.5em;
@@ -108,21 +109,21 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                        }
                        .prose h3 {
                           font-weight: 600;
-                          font-size: 1.3em;
+                          font-size: 1.15em;
                           margin-top: 1.8em;
                           margin-bottom: 0.8em;
                           opacity: 0.9;
                        }
                        .prose h4 {
                           font-weight: 500;
-                          font-size: 1.15em;
+                          font-size: 1.05em;
                           margin-top: 1.6em;
                           margin-bottom: 0.6em;
                           opacity: 0.85;
                        }
                        .prose h5 {
                           font-weight: 500;
-                          font-size: 1.05em;
+                          font-size: 0.95em;
                           margin-top: 1.4em;
                           margin-bottom: 0.4em;
                           opacity: 0.8;
@@ -131,7 +132,7 @@ const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
                        }
                        .prose h6 {
                           font-weight: 500;
-                          font-size: 0.95em;
+                          font-size: 0.85em;
                           margin-top: 1.2em;
                           opacity: 0.7;
                        }

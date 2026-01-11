@@ -70,7 +70,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       case 'tight': return '紧凑';
       case 'normal': return '适中';
       case 'relaxed': return '松散';
-      case 'loose': return '空间';
+      case 'loose': return '呼吸';
       default: return height;
     }
   };

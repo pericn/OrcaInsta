@@ -87,6 +87,7 @@ export const THEMES: ThemeConfig[] = [
     cardBg: 'bg-white',
     cardBorder: 'border-transparent',
     quoteBg: 'bg-gray-50',
+    shadowColor: 'shadow-2xl',
   },
   {
     id: 'simple-dark',
@@ -97,6 +98,7 @@ export const THEMES: ThemeConfig[] = [
     cardBg: 'bg-slate-900',
     cardBorder: 'border-slate-700',
     quoteBg: 'bg-slate-800',
+    shadowColor: 'shadow-2xl shadow-slate-300/30',
   },
   {
     id: 'paper',
@@ -107,6 +109,7 @@ export const THEMES: ThemeConfig[] = [
     cardBg: 'bg-[#fdfbf7]',
     cardBorder: 'border-stone-200',
     quoteBg: 'bg-[#f3eee3]',
+    shadowColor: 'shadow-2xl',
   },
   {
     id: 'forest',
@@ -117,6 +120,7 @@ export const THEMES: ThemeConfig[] = [
     cardBg: 'bg-emerald-950/50 backdrop-blur-md',
     cardBorder: 'border-emerald-800',
     quoteBg: 'bg-emerald-900/40',
+    shadowColor: 'shadow-2xl shadow-emerald-300/40',
   },
   {
     id: 'gradient-purple',
@@ -127,6 +131,7 @@ export const THEMES: ThemeConfig[] = [
     cardBg: 'bg-black/20 backdrop-blur-md',
     cardBorder: 'border-white/10',
     quoteBg: 'bg-white/10',
+    shadowColor: 'shadow-2xl shadow-white/30',
   }
 ];
 
