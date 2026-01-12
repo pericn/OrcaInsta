@@ -24,6 +24,9 @@ const App: React.FC = () => {
   // Dynamic viewport height for mobile keyboard handling
   const viewportHeight = useViewportHeight();
 
+  // Dynamic BottomBar height for mobile
+  const [bottomBarHeight, setBottomBarHeight] = useState<number>(0);
+
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +72,35 @@ const App: React.FC = () => {
       }
     });
   }, [markdown, currentTheme.id, typography]);
+
+  // Calculate BottomBar height dynamically for mobile
+  useEffect(() => {
+    const calculateBottomBarHeight = () => {
+      // Only calculate for mobile devices
+      if (window.innerWidth >= 768) {
+        setBottomBarHeight(0);
+        return;
+      }
+
+      // Wait for DOM to be ready
+      setTimeout(() => {
+        const bottomBar = document.querySelector('[class*="fixed bottom-0"]') as HTMLElement;
+        if (bottomBar) {
+          const height = bottomBar.offsetHeight;
+          setBottomBarHeight(height);
+        } else {
+          // Fallback to estimated height
+          setBottomBarHeight(56);
+        }
+      }, 100);
+    };
+
+    calculateBottomBarHeight();
+
+    // Recalculate on window resize
+    window.addEventListener('resize', calculateBottomBarHeight);
+    return () => window.removeEventListener('resize', calculateBottomBarHeight);
+  }, [activeMobileTab]); // Recalculate when tab changes (might affect height)
 
   // Clear content handler
   const handleClearContent = useCallback(() => {
@@ -204,7 +236,10 @@ const App: React.FC = () => {
         onClearContent={handleClearContent}
       />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0 bg-white">
+      <div
+        className="flex-1 flex flex-col md:flex-row overflow-hidden relative bg-white"
+        style={{ paddingBottom: window.innerWidth < 768 ? `${bottomBarHeight}px` : '0px' }}
+      >
         {/* Editor Pane */}
         <div className={`
           w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10 relative
