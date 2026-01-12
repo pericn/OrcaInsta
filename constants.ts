@@ -143,8 +143,8 @@ export const FONT_SIZE_MAP = {
 };
 
 export const LINE_HEIGHT_MAP = {
-  tight: 'leading-tight',
-  normal: 'leading-normal',
-  relaxed: 'leading-relaxed',
-  loose: 'leading-loose',
+  tight: 'leading-[1.5]',
+  normal: 'leading-[1.75]',
+  relaxed: 'leading-[2.0]',
+  loose: 'leading-[2.3]',
 };

@@ -30,8 +30,7 @@ const App: React.FC = () => {
   // Formatting state
   const [formatError, setFormatError] = useState<string>('');
 
-  // Shadow control for export
-  const [showShadow, setShowShadow] = useState<boolean>(true);
+  // Removed showShadow state - using direct DOM manipulation instead
 
   const currentTheme = THEMES[themeIndex];
 
@@ -112,44 +111,56 @@ const App: React.FC = () => {
     // Small delay to allow React to render the formatted text before capturing
     await new Promise(resolve => setTimeout(resolve, 50));
 
+    // Get content div (The colored container)
+    const contentDiv = previewRef.current.querySelector('.relative.flex.flex-col') as HTMLElement;
+    
+    if (!contentDiv) {
+      console.error('Content div not found');
+      return;
+    }
+
+    // Store original inline styles to restore later
+    const originalBoxShadow = contentDiv.style.boxShadow;
+    const originalMargin = contentDiv.style.margin;
+    const originalBorder = contentDiv.style.border;
+
     try {
-      // 1. Temporarily hide shadow for export
-      setShowShadow(false);
-      // Wait for React to re-render
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // 1. SURGICAL DOM MANIPULATION
+      // Remove shadow to prevent transparent bleed
+      contentDiv.style.boxShadow = 'none';
+      contentDiv.style.margin = '0';
+      
+      // Add a subtle physical border to define edges since shadow is gone
+      const isLight = currentTheme.id.includes('light') || currentTheme.id.includes('paper');
+      contentDiv.style.border = isLight ? '1px solid #e2e8f0' : '1px solid #334155'; // slate-200 or slate-700
 
-      // 2. Temporarily modify transform for export
-      const originalTransform = previewRef.current.style.transform;
+      // 2. Calculate Scale for 1080px width
+      const { offsetWidth, offsetHeight } = contentDiv;
+      const targetWidth = 1080;
+      const scale = targetWidth / offsetWidth;
 
-      // Set scale to achieve 1080px width (1080/375 ≈ 2.88)
-      previewRef.current.style.transform = 'scale(2.88)';
-
-      const dataUrl = await toPng(previewRef.current, {
+      // 3. Export
+      const dataUrl = await toPng(contentDiv, {
         cacheBust: true,
-        pixelRatio: 1, // No additional pixel ratio since we're scaling
-        backgroundColor: 'transparent', // Let the theme background show through
-        // CRITICAL: Skip embedding fonts to avoid "Cannot access rules" (CORS) errors with Google Fonts
+        width: targetWidth,
+        height: offsetHeight * scale,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${offsetWidth}px`,
+          height: `${offsetHeight}px`,
+        },
+        pixelRatio: 1, 
+        // Remove backgroundColor override to let original theme colors (gradients/patterns) show
         skipFonts: true,
-        // Ignore resources that fail to load (e.g. blocked images) so export still finishes
-        // @ts-expect-error - skipOnError exists in library but missing in types
+        // @ts-expect-error - skipOnError exists in library
         skipOnError: true,
-        // Filter out iframes/scripts but ALLOW stylesheets to ensure background styles are captured
         filter: (node) => {
-          // Ensure we are dealing with an Element node
-          if (node.nodeType !== 1) {
-            return true;
-          }
+          if (node.nodeType !== 1) return true;
           const el = node as HTMLElement;
-          if (el.tagName === 'IFRAME' || el.tagName === 'SCRIPT') {
-             return false;
-          }
-          return true;
+          return !(el.tagName === 'IFRAME' || el.tagName === 'SCRIPT');
         }
       });
-
-      // 3. Restore original transform and shadow
-      previewRef.current.style.transform = originalTransform;
-      setShowShadow(true);
 
       // 4. Download
       const link = document.createElement('a');
@@ -159,10 +170,15 @@ const App: React.FC = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to generate image. Please try again.');
-      // Ensure shadow is restored even on error
-      setShowShadow(true);
+    } finally {
+      // 5. RESTORE DOM (Crucial!)
+      if (contentDiv) {
+        contentDiv.style.boxShadow = originalBoxShadow;
+        contentDiv.style.margin = originalMargin;
+        contentDiv.style.border = originalBorder;
+      }
     }
-  }, [previewRef]);
+  }, [previewRef, currentTheme.id]);
 
   const handleThemeChange = (themeId: string) => {
     const idx = THEMES.findIndex(t => t.id === themeId);
@@ -223,7 +239,6 @@ const App: React.FC = () => {
                 theme={currentTheme}
                 typography={typography}
                 scale={1} // Base scale
-                showShadow={showShadow}
               />
             </div>
         </div>
