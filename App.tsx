@@ -204,7 +204,7 @@ const App: React.FC = () => {
         onClearContent={handleClearContent}
       />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-20 md:pb-0 bg-white">
         {/* Editor Pane */}
         <div className={`
           w-full md:w-1/2 h-full flex flex-col border-b md:border-b-0 md:border-r border-gray-200 bg-white z-10 relative
