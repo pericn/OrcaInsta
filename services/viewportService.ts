@@ -1,10 +1,22 @@
 // Viewport height management for mobile devices
 // Handles dynamic height changes when keyboard appears/disappears
 
+export interface ViewportState {
+  height: number;
+  width: number;
+  offsetTop: number;
+  offsetLeft: number;
+}
+
 class ViewportService {
   private static instance: ViewportService;
-  private currentHeight: number = window.innerHeight;
-  private listeners: ((height: number) => void)[] = [];
+  private currentState: ViewportState = {
+    height: window.visualViewport ? window.visualViewport.height : window.innerHeight,
+    width: window.visualViewport ? window.visualViewport.width : window.innerWidth,
+    offsetTop: window.visualViewport ? window.visualViewport.offsetTop : 0,
+    offsetLeft: window.visualViewport ? window.visualViewport.offsetLeft : 0,
+  };
+  private listeners: ((state: ViewportState) => void)[] = [];
 
   private constructor() {
     this.init();
@@ -18,105 +30,55 @@ class ViewportService {
   }
 
   private init() {
-    let debounceTimer: number;
-
-    // Debounced update function to prevent excessive updates
-    const debouncedUpdate = (height: number) => {
-      clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => {
-        if (height !== this.currentHeight) {
-          this.currentHeight = height;
-          this.notifyListeners(height);
-        }
-      }, 100); // 100ms debounce
-    };
-
-    // Enhanced height update with multiple measurement attempts
-    const updateHeight = () => {
-      // Immediate first measurement
-      let height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
-      // Force immediate update for critical changes
-      if (Math.abs(height - this.currentHeight) > 100) {
-        // Significant height change (likely keyboard show/hide)
-        this.currentHeight = height;
-        this.notifyListeners(height);
+    const updateState = () => {
+      if (window.visualViewport) {
+        this.currentState = {
+          height: window.visualViewport.height,
+          width: window.visualViewport.width,
+          offsetTop: window.visualViewport.offsetTop,
+          offsetLeft: window.visualViewport.offsetLeft,
+        };
       } else {
-        // Small changes use debounced update
-        debouncedUpdate(height);
+        this.currentState = {
+          height: window.innerHeight,
+          width: window.innerWidth,
+          offsetTop: 0,
+          offsetLeft: 0,
+        };
       }
-
-      // Additional measurement after a short delay for keyboard transitions
-      setTimeout(() => {
-        const secondHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        // Use the larger height (keyboard hidden state) for final update
-        const finalHeight = Math.max(height, secondHeight);
-
-        if (Math.abs(finalHeight - this.currentHeight) > 50) {
-          // Significant final change
-          this.currentHeight = finalHeight;
-          this.notifyListeners(finalHeight);
-        } else {
-          debouncedUpdate(finalHeight);
-        }
-      }, 200);
+      this.notifyListeners();
     };
 
-    // Use visualViewport API if available (better for mobile)
+    // Use visualViewport API
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateHeight);
-      window.visualViewport.addEventListener('scroll', updateHeight);
-
-      // Initial height
-      this.currentHeight = window.visualViewport.height;
-    } else {
-      // Fallback to window resize for older browsers
-      window.addEventListener('resize', updateHeight);
-      this.currentHeight = window.innerHeight;
+      window.visualViewport.addEventListener('resize', updateState);
+      window.visualViewport.addEventListener('scroll', updateState);
     }
-
-    // Add orientation change listener (important for mobile)
-    window.addEventListener('orientationchange', () => {
-      // Delay update after orientation change
-      setTimeout(updateHeight, 200);
-    });
-
-    // Add keyboard event listeners for better keyboard handling
-    const handleFocus = () => setTimeout(updateHeight, 300); // Delay for keyboard animation
-    const handleBlur = () => setTimeout(updateHeight, 500);  // Longer delay for keyboard hide
-
-    // Listen for input focus/blur events
-    document.addEventListener('focusin', handleFocus);
-    document.addEventListener('focusout', handleBlur);
-
-    // Listen for window focus events (app switching)
-    window.addEventListener('focus', updateHeight);
-    window.addEventListener('blur', updateHeight);
+    
+    window.addEventListener('resize', updateState);
+    window.addEventListener('scroll', updateState); // Window scroll also matters
+    
+    // Initial check
+    updateState();
   }
 
-  private notifyListeners(height: number) {
-    this.listeners.forEach(listener => listener(height));
+  private notifyListeners() {
+    this.listeners.forEach(listener => listener(this.currentState));
   }
 
-  getHeight(): number {
-    return this.currentHeight;
+  getState(): ViewportState {
+    return this.currentState;
   }
 
-  subscribe(listener: (height: number) => void): () => void {
+  subscribe(listener: (state: ViewportState) => void): () => void {
     this.listeners.push(listener);
-
-    // Return unsubscribe function
+    listener(this.currentState);
     return () => {
       const index = this.listeners.indexOf(listener);
       if (index > -1) {
         this.listeners.splice(index, 1);
       }
     };
-  }
-
-  // Get CSS custom property value for dynamic height
-  getCSSHeight(): string {
-    return `${this.currentHeight}px`;
   }
 }
 

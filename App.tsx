@@ -8,7 +8,7 @@ import { DEFAULT_MARKDOWN, THEMES } from './constants';
 import { insertSpaceInMarkdown } from './services/textUtils';
 import { StorageService } from './services/storageService';
 import { TypographyConfig } from './types';
-import { useViewportHeight } from './hooks/useViewportHeight';
+import { useViewport } from './hooks/useViewportHeight';
 
 const App: React.FC = () => {
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
@@ -20,22 +20,57 @@ const App: React.FC = () => {
 
   // Mobile Layout State
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
+  const [isFocused, setIsFocused] = useState(false);
 
   // Dynamic viewport height for mobile keyboard handling
-  const viewportHeight = useViewportHeight();
-
-  // Dynamic BottomBar height for mobile
-  const [bottomBarHeight, setBottomBarHeight] = useState<number>(0);
+  const viewportState = useViewport();
 
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Formatting state
   const [formatError, setFormatError] = useState<string>('');
 
-  // Removed showShadow state - using direct DOM manipulation instead
-
   const currentTheme = THEMES[themeIndex];
+
+  // Helper to scroll cursor to view
+  const scrollToCursor = useCallback(() => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const { selectionStart, value } = textarea;
+    
+    // Estimate line number (simple split)
+    const lines = value.substring(0, selectionStart).split('\n');
+    const lineNumber = lines.length;
+    
+    // Estimate line height (leading-6 is 24px)
+    const lineHeight = 24; 
+    const cursorY = lineNumber * lineHeight;
+    
+    // Target position: We want cursor to be roughly in the top 1/3 of the VISIBLE area
+    // visible area is viewportHeight - ToolbarHeight (~56px)
+    // But textarea scrolls internally.
+    // So we just want to set scrollTop such that cursorY is at roughly 100px from top of textarea
+    
+    const targetScrollTop = Math.max(0, cursorY - 100);
+    
+    // Smooth scroll if supported, or instant
+    textarea.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth'
+    });
+  }, []);
+
+  // Monitor viewport height changes to re-adjust scroll if keyboard fully expands
+  useEffect(() => {
+    if (isFocused) {
+      // Small delay to let layout settle
+      const timer = setTimeout(scrollToCursor, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [viewportState.height, isFocused, scrollToCursor]);
 
   // Load saved data on component mount
   useEffect(() => {
@@ -73,93 +108,6 @@ const App: React.FC = () => {
     });
   }, [markdown, currentTheme.id, typography]);
 
-  // Calculate BottomBar height dynamically for mobile
-  useEffect(() => {
-    const calculateBottomBarHeight = () => {
-      // Only calculate for mobile devices
-      if (window.innerWidth >= 768) {
-        setBottomBarHeight(0);
-        return;
-      }
-
-      // Wait for DOM to be ready
-      setTimeout(() => {
-        const bottomBar = document.querySelector('[class*="fixed bottom-0"]') as HTMLElement;
-        if (bottomBar) {
-          const height = bottomBar.offsetHeight;
-          setBottomBarHeight(height);
-        } else {
-          // Fallback to estimated height
-          setBottomBarHeight(56);
-        }
-      }, 100);
-    };
-
-    calculateBottomBarHeight();
-
-    // Recalculate on window resize and viewport changes
-    window.addEventListener('resize', calculateBottomBarHeight);
-    window.addEventListener('orientationchange', calculateBottomBarHeight);
-
-    return () => {
-      window.removeEventListener('resize', calculateBottomBarHeight);
-      window.removeEventListener('orientationchange', calculateBottomBarHeight);
-    };
-  }, [activeMobileTab]); // Recalculate when tab changes (might affect height)
-
-  // Enhanced viewport height update on keyboard events
-  useEffect(() => {
-    const handleFocus = () => {
-      // Immediate update when keyboard shows
-      setTimeout(() => {
-        const forceUpdate = () => setBottomBarHeight(prev => prev + 0.01);
-        forceUpdate();
-        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
-      }, 100);
-    };
-
-    const handleBlur = () => {
-      // Delayed update when keyboard hides (keyboard animation takes time)
-      setTimeout(() => {
-        const forceUpdate = () => setBottomBarHeight(prev => prev + 0.01);
-        forceUpdate();
-        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
-      }, 400); // Wait for keyboard to fully hide
-    };
-
-    // Listen for input events that might trigger keyboard
-    const inputs = document.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-      input.addEventListener('focus', handleFocus);
-      input.addEventListener('blur', handleBlur);
-    });
-
-    // Also listen for visual viewport changes as backup
-    if (window.visualViewport) {
-      const handleViewportChange = () => {
-        setBottomBarHeight(prev => prev + 0.01);
-        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
-      };
-
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-
-      return () => {
-        inputs.forEach(input => {
-          input.removeEventListener('focus', handleFocus);
-          input.removeEventListener('blur', handleBlur);
-        });
-        window.visualViewport?.removeEventListener('resize', handleViewportChange);
-      };
-    }
-
-    return () => {
-      inputs.forEach(input => {
-        input.removeEventListener('focus', handleFocus);
-        input.removeEventListener('blur', handleBlur);
-      });
-    };
-  }, []);
-
   // Clear content handler
   const handleClearContent = useCallback(() => {
     if (window.confirm('确定要清除所有内容吗？此操作无法撤销。')) {
@@ -188,7 +136,15 @@ const App: React.FC = () => {
 
   // Auto-format when the user finishes editing (on blur)
   const handleBlur = () => {
+    setIsFocused(false);
     setMarkdown((prev) => insertSpaceInMarkdown(prev));
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    // Trigger scroll after keyboard likely opened
+    setTimeout(scrollToCursor, 100);
+    setTimeout(scrollToCursor, 400); // Retry after animation
   };
 
   const handleExport = useCallback(async () => {
@@ -279,8 +235,12 @@ const App: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col bg-gray-50 overflow-hidden"
-      style={{ height: `${viewportHeight}px` }}
+      className="flex flex-col bg-gray-50 overflow-hidden fixed w-full"
+      style={{ 
+        height: `${viewportState.height}px`,
+        top: `${viewportState.offsetTop}px`,
+        left: `${viewportState.offsetLeft}px`
+      }}
     >
       <Toolbar
         onExport={handleExport}
@@ -296,7 +256,6 @@ const App: React.FC = () => {
 
       <div
         className="flex-1 flex flex-col md:flex-row overflow-hidden relative bg-white"
-        style={{ paddingBottom: window.innerWidth < 768 ? `${bottomBarHeight}px` : '0px' }}
       >
         {/* Editor Pane */}
         <div className={`
@@ -304,10 +263,12 @@ const App: React.FC = () => {
           ${activeMobileTab === 'editor' ? 'flex' : 'hidden md:flex'}
         `}>
           <textarea
+            ref={textareaRef}
             className="w-full h-full p-6 resize-none focus:outline-none font-mono text-sm leading-6 text-gray-700 bg-transparent"
             value={markdown}
             onChange={handleTextChange}
             onBlur={handleBlur}
+            onFocus={handleFocus}
             placeholder="Type your markdown here..."
             spellCheck={false}
           />
@@ -338,12 +299,14 @@ const App: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Bar */}
-      <BottomBar
-        activeTab={activeMobileTab}
-        onTabChange={setActiveMobileTab}
-        onExport={handleExport}
-        onClearContent={handleClearContent}
-      />
+      <div className={isFocused ? 'hidden' : 'block'}>
+        <BottomBar
+          activeTab={activeMobileTab}
+          onTabChange={setActiveMobileTab}
+          onExport={handleExport}
+          onClearContent={handleClearContent}
+        />
+      </div>
     </div>
   );
 };
