@@ -107,28 +107,55 @@ const App: React.FC = () => {
     };
   }, [activeMobileTab]); // Recalculate when tab changes (might affect height)
 
-  // Force viewport height update on keyboard events
+  // Enhanced viewport height update on keyboard events
   useEffect(() => {
-    const handleKeyboardEvents = () => {
-      // Force viewport service to recalculate height after keyboard transitions
+    const handleFocus = () => {
+      // Immediate update when keyboard shows
       setTimeout(() => {
-        // Trigger a re-render by updating a state (we'll use bottomBarHeight as trigger)
-        setBottomBarHeight(prev => prev + 0.1); // Tiny change to trigger re-render
-        setTimeout(() => setBottomBarHeight(prev => prev - 0.1), 10); // Reset immediately
-      }, 200);
+        const forceUpdate = () => setBottomBarHeight(prev => prev + 0.01);
+        forceUpdate();
+        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
+      }, 100);
+    };
+
+    const handleBlur = () => {
+      // Delayed update when keyboard hides (keyboard animation takes time)
+      setTimeout(() => {
+        const forceUpdate = () => setBottomBarHeight(prev => prev + 0.01);
+        forceUpdate();
+        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
+      }, 400); // Wait for keyboard to fully hide
     };
 
     // Listen for input events that might trigger keyboard
     const inputs = document.querySelectorAll('input, textarea');
     inputs.forEach(input => {
-      input.addEventListener('focus', handleKeyboardEvents);
-      input.addEventListener('blur', handleKeyboardEvents);
+      input.addEventListener('focus', handleFocus);
+      input.addEventListener('blur', handleBlur);
     });
+
+    // Also listen for visual viewport changes as backup
+    if (window.visualViewport) {
+      const handleViewportChange = () => {
+        setBottomBarHeight(prev => prev + 0.01);
+        setTimeout(() => setBottomBarHeight(prev => prev - 0.01), 50);
+      };
+
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+
+      return () => {
+        inputs.forEach(input => {
+          input.removeEventListener('focus', handleFocus);
+          input.removeEventListener('blur', handleBlur);
+        });
+        window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      };
+    }
 
     return () => {
       inputs.forEach(input => {
-        input.removeEventListener('focus', handleKeyboardEvents);
-        input.removeEventListener('blur', handleKeyboardEvents);
+        input.removeEventListener('focus', handleFocus);
+        input.removeEventListener('blur', handleBlur);
       });
     };
   }, []);

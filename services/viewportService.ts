@@ -33,18 +33,33 @@ class ViewportService {
 
     // Enhanced height update with multiple measurement attempts
     const updateHeight = () => {
-      // Try multiple measurements for stability
-      setTimeout(() => {
-        let height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      // Immediate first measurement
+      let height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-        // Additional measurement after a short delay for keyboard transitions
-        setTimeout(() => {
-          const secondHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-          // Use the larger height (keyboard hidden state)
-          height = Math.max(height, secondHeight);
-          debouncedUpdate(height);
-        }, 150);
-      }, 50);
+      // Force immediate update for critical changes
+      if (Math.abs(height - this.currentHeight) > 100) {
+        // Significant height change (likely keyboard show/hide)
+        this.currentHeight = height;
+        this.notifyListeners(height);
+      } else {
+        // Small changes use debounced update
+        debouncedUpdate(height);
+      }
+
+      // Additional measurement after a short delay for keyboard transitions
+      setTimeout(() => {
+        const secondHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        // Use the larger height (keyboard hidden state) for final update
+        const finalHeight = Math.max(height, secondHeight);
+
+        if (Math.abs(finalHeight - this.currentHeight) > 50) {
+          // Significant final change
+          this.currentHeight = finalHeight;
+          this.notifyListeners(finalHeight);
+        } else {
+          debouncedUpdate(finalHeight);
+        }
+      }, 200);
     };
 
     // Use visualViewport API if available (better for mobile)
