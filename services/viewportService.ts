@@ -18,16 +18,37 @@ class ViewportService {
   }
 
   private init() {
-    // Use visualViewport API if available (better for mobile)
-    if (window.visualViewport) {
-      const updateHeight = () => {
-        const height = window.visualViewport!.height;
+    let debounceTimer: number;
+
+    // Debounced update function to prevent excessive updates
+    const debouncedUpdate = (height: number) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
         if (height !== this.currentHeight) {
           this.currentHeight = height;
           this.notifyListeners(height);
         }
-      };
+      }, 100); // 100ms debounce
+    };
 
+    // Enhanced height update with multiple measurement attempts
+    const updateHeight = () => {
+      // Try multiple measurements for stability
+      setTimeout(() => {
+        let height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+        // Additional measurement after a short delay for keyboard transitions
+        setTimeout(() => {
+          const secondHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+          // Use the larger height (keyboard hidden state)
+          height = Math.max(height, secondHeight);
+          debouncedUpdate(height);
+        }, 150);
+      }, 50);
+    };
+
+    // Use visualViewport API if available (better for mobile)
+    if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', updateHeight);
       window.visualViewport.addEventListener('scroll', updateHeight);
 
@@ -35,17 +56,27 @@ class ViewportService {
       this.currentHeight = window.visualViewport.height;
     } else {
       // Fallback to window resize for older browsers
-      const updateHeight = () => {
-        const height = window.innerHeight;
-        if (height !== this.currentHeight) {
-          this.currentHeight = height;
-          this.notifyListeners(height);
-        }
-      };
-
       window.addEventListener('resize', updateHeight);
       this.currentHeight = window.innerHeight;
     }
+
+    // Add orientation change listener (important for mobile)
+    window.addEventListener('orientationchange', () => {
+      // Delay update after orientation change
+      setTimeout(updateHeight, 200);
+    });
+
+    // Add keyboard event listeners for better keyboard handling
+    const handleFocus = () => setTimeout(updateHeight, 300); // Delay for keyboard animation
+    const handleBlur = () => setTimeout(updateHeight, 500);  // Longer delay for keyboard hide
+
+    // Listen for input focus/blur events
+    document.addEventListener('focusin', handleFocus);
+    document.addEventListener('focusout', handleBlur);
+
+    // Listen for window focus events (app switching)
+    window.addEventListener('focus', updateHeight);
+    window.addEventListener('blur', updateHeight);
   }
 
   private notifyListeners(height: number) {

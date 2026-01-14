@@ -97,10 +97,41 @@ const App: React.FC = () => {
 
     calculateBottomBarHeight();
 
-    // Recalculate on window resize
+    // Recalculate on window resize and viewport changes
     window.addEventListener('resize', calculateBottomBarHeight);
-    return () => window.removeEventListener('resize', calculateBottomBarHeight);
+    window.addEventListener('orientationchange', calculateBottomBarHeight);
+
+    return () => {
+      window.removeEventListener('resize', calculateBottomBarHeight);
+      window.removeEventListener('orientationchange', calculateBottomBarHeight);
+    };
   }, [activeMobileTab]); // Recalculate when tab changes (might affect height)
+
+  // Force viewport height update on keyboard events
+  useEffect(() => {
+    const handleKeyboardEvents = () => {
+      // Force viewport service to recalculate height after keyboard transitions
+      setTimeout(() => {
+        // Trigger a re-render by updating a state (we'll use bottomBarHeight as trigger)
+        setBottomBarHeight(prev => prev + 0.1); // Tiny change to trigger re-render
+        setTimeout(() => setBottomBarHeight(prev => prev - 0.1), 10); // Reset immediately
+      }, 200);
+    };
+
+    // Listen for input events that might trigger keyboard
+    const inputs = document.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+      input.addEventListener('focus', handleKeyboardEvents);
+      input.addEventListener('blur', handleKeyboardEvents);
+    });
+
+    return () => {
+      inputs.forEach(input => {
+        input.removeEventListener('focus', handleKeyboardEvents);
+        input.removeEventListener('blur', handleKeyboardEvents);
+      });
+    };
+  }, []);
 
   // Clear content handler
   const handleClearContent = useCallback(() => {
