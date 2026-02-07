@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2 } from 'lucide-react';
+import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2, Copy, FileText, Image as ImageIcon, ChevronUp } from 'lucide-react';
 import { TypographyConfig, ThemeConfig } from '../types';
 
 interface ToolbarProps {
@@ -12,6 +12,8 @@ interface ToolbarProps {
   activeMobileTab: 'editor' | 'preview';
   onTabChange: (tab: 'editor' | 'preview') => void;
   onClearContent: () => void;
+  onCopy: () => void;
+  onPDF: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -23,7 +25,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   setTypography,
   activeMobileTab,
   onTabChange,
-  onClearContent
+  onClearContent,
+  onCopy,
+  onPDF
 }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -74,6 +78,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
       default: return height;
     }
   };
+
+
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isExportMenuOpen) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isExportMenuOpen]);
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
@@ -138,15 +156,66 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       ) : null}
 
-      {/* Export Button - Hidden on Mobile (moved to BottomBar) */}
-      <button
-        onClick={onExport}
-        className="hidden md:flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm ml-2"
-        title="导出图片"
-      >
-        <Download size={14} />
-        <span>导出</span>
-      </button>
+      {/* Export Dropdown Menu */}
+      <div className="relative ml-2 z-50">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExportMenuOpen(!isExportMenuOpen);
+          }}
+          className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-all shadow-sm ${isExportMenuOpen ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+          title="导出选项"
+        >
+          <Download size={14} />
+          <span>导出</span>
+          {isExportMenuOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+
+        {isExportMenuOpen && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-100 z-50">
+            <div className="py-1">
+              <button
+                onClick={() => { onExport(); setIsExportMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+              >
+                <div className="bg-blue-50 p-1.5 rounded-md text-blue-600">
+                  <ImageIcon size={16} />
+                </div>
+                <div>
+                  <div className="font-medium">保存图片</div>
+                  <div className="text-[10px] text-gray-400">下载 PNG 长图</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { onCopy(); setIsExportMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+              >
+                <div className="bg-purple-50 p-1.5 rounded-md text-purple-600">
+                  <Copy size={16} />
+                </div>
+                <div>
+                  <div className="font-medium">复制图片</div>
+                  <div className="text-[10px] text-gray-400">复制到剪贴板</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { onPDF(); setIsExportMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors border-t border-gray-50"
+              >
+                <div className="bg-red-50 p-1.5 rounded-md text-red-600">
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <div className="font-medium">导出 PDF</div>
+                  <div className="text-[10px] text-gray-400">A4 打印格式</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

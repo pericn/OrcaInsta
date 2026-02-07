@@ -37,7 +37,7 @@ export const insertSpaceInMarkdown = (text: string): string => {
       if (i === parts.length - 1) break;
 
       const isOpening = (i % 2 === 0);
-      
+
       if (isOpening) {
         // We are at the end of parts[i], about to enter ** (Opening).
         // If parts[i] ends with CJK/Punct/Non-space, add space BEFORE the **.
@@ -51,13 +51,13 @@ export const insertSpaceInMarkdown = (text: string): string => {
         // We are at the end of parts[i] (which is INSIDE bold), about to exit ** (Closing).
         // We need to check the START of parts[i+1].
         // If parts[i+1] starts with CJK/Punct/Non-space, add space AFTER the **.
-        if (parts[i+1].length > 0) {
-           const firstChar = parts[i+1].slice(0, 1);
-           // User request: In continuous Punctuation + Marker sequence, add space AFTER the marker.
-           // Example: "，**" -> Add space after ** -> "，** Next"
-           if (/[^\s]/.test(firstChar)) {
-             parts[i+1] = ' ' + parts[i+1];
-           }
+        if (parts[i + 1].length > 0) {
+          const firstChar = parts[i + 1].slice(0, 1);
+          // User request: In continuous Punctuation + Marker sequence, add space AFTER the marker.
+          // Example: "，**" -> Add space after ** -> "，** Next"
+          if (/[^\s]/.test(firstChar)) {
+            parts[i + 1] = ' ' + parts[i + 1];
+          }
         }
       }
     }
@@ -68,5 +68,32 @@ export const insertSpaceInMarkdown = (text: string): string => {
   processed = processed.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
   processed = processed.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
 
+
   return processed;
+};
+
+/**
+ * Generates a filename based on the content title and current date.
+ * Format: Title_YYMMDD
+ * If no title found, uses "OrcaInsta_YYMMDD"
+ */
+export const generateFileName = (content: string, extension: string): string => {
+  // 1. Extract Title (First H1 # Title)
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  let title = 'OrcaInsta';
+
+  if (titleMatch && titleMatch[1]) {
+    title = titleMatch[1].trim();
+    // Sanitize title (remove illegal chars)
+    title = title.replace(/[\\/:*?"<>|]/g, '-');
+  }
+
+  // 2. Format Date YYMMDD
+  const now = new Date();
+  const yy = now.getFullYear().toString().slice(-2);
+  const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dd = now.getDate().toString().padStart(2, '0');
+  const dateStr = `${yy}${mm}${dd}`;
+
+  return `${title}_${dateStr}.${extension}`;
 };

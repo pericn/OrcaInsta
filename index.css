@@ -33,7 +33,51 @@ body {
   background: #94a3b8;
 }
 
+
 /* Safe Area Utilities */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Print Styles for Vector PDF Export */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm; 
+  }
+
+  body {
+    background: white;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Hide UI elements during print */
+  .fixed, nav, footer, button, select, 
+  [className*="Toolbar"], [className*="BottomBar"], 
+  textarea, [className*="FormatButton"] {
+    display: none !important;
+  }
+
+  /* Force display content */
+  #root, [className*="App"], [className*="PreviewCard"] {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+  }
+  
+  /* Reset container styles to fit page */
+  [className*="PreviewCard"] > div {
+    transform: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure backgrounds print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
