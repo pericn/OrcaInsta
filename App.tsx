@@ -1,24 +1,24 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { toPng, toBlob } from 'html-to-image';
+import { Copy, Scissors, Shrink, RotateCcw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import JSZip from 'jszip';
 import Toolbar from './components/Toolbar';
 import PreviewCard from './components/PreviewCard';
 import { BottomBar } from './components/BottomBar';
-import { FormatButton } from './components/FormatButton';
+import { EditorToolbar } from './components/EditorToolbar';
 import { Toast, ToastType } from './components/Toast';
-import { DEFAULT_MARKDOWN, THEMES } from './constants';
+import { THEMES, TYPOGRAPHY_CONFIGS, APP_VERSION } from './constants';
 import { insertSpaceInMarkdown, generateFileName } from './services/textUtils';
 import { StorageService } from './services/storageService';
-import { TypographyConfig } from './types';
+import { TypographyConfig, PreviewMode } from './types';
 import { useViewport } from './hooks/useViewportHeight';
 
-const App: React.FC = () => {
-  const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
-  const [themeIndex, setThemeIndex] = useState<number>(0);
-  const [typography, setTypography] = useState<TypographyConfig>({
-    fontSize: 'base',
-    lineHeight: 'loose'
-  });
+function App() {
+  const [markdown, setMarkdown] = useState('');
+  const [themeIndex, setThemeIndex] = useState(0);
+  const [typography, setTypography] = useState(TYPOGRAPHY_CONFIGS.base);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('long');
 
   // Toast State
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -30,12 +30,14 @@ const App: React.FC = () => {
   // Mobile Layout State
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
   const [isFocused, setIsFocused] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Dynamic viewport height for mobile keyboard handling
   const viewportState = useViewport();
 
   // Ref for the DOM element we want to capture
   const previewRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Formatting state
@@ -432,6 +434,7 @@ const App: React.FC = () => {
     // Deep clone
     const clonedContent = sourceElement.cloneNode(true) as HTMLElement;
 
+
     // Override fixed width classes to proper A4 width
     clonedContent.style.width = '100%';
     clonedContent.style.maxWidth = 'none';
@@ -479,6 +482,74 @@ const App: React.FC = () => {
 
   }, [previewRef]);
 
+  const handleXiaohongshuExport = useCallback(() => {
+    // 1. Prepare Content
+    setMarkdown((prev) => insertSpaceInMarkdown(prev));
+    setIsExporting(true);
+    showToast("正在生成高清图 (智能分页)...", 'info');
+  }, [setMarkdown, showToast]);
+
+  const finalizeExport = useCallback(async () => {
+    if (!exportRef.current) return;
+
+    const zip = new JSZip();
+    const folderName = generateFileName(markdown, '').replace(/(\.png|\.pdf)$/, '');
+    const imgFolder = zip.folder(folderName) || zip;
+
+    const pages = exportRef.current.querySelectorAll('.xh-page');
+    if (pages.length === 0) {
+      showToast("无法找到分页内容", 'error');
+      setIsExporting(false);
+      return;
+    }
+
+    showToast(`正在处理 ${pages.length} 张图片...`, 'info');
+
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i] as HTMLElement;
+
+        // Ensure scale 1.0 for export (container is 1080px wide)
+        const originalTransform = page.style.transform;
+        page.style.transform = 'none';
+
+        const blob = await toBlob(page, {
+          cacheBust: true,
+          width: 1080,
+          height: 1443,
+          pixelRatio: 1, 
+          skipFonts: true,
+          // @ts-expect-error - skipOnError exists in library
+          skipOnError: true,
+        });
+
+        page.style.transform = originalTransform;
+
+        if (blob) {
+          imgFolder.file(`${folderName}_${i + 1}.png`, blob);
+        }
+
+        // Delay to prevent browser congestion
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      showToast("正在打包下载...", 'info');
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `${folderName}.zip`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+
+      showToast("导出完成！", 'success');
+    } catch (err) {
+      console.error(err);
+      showToast("打包导出失败，请重试", 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [markdown, showToast]);
+
   const handleThemeChange = (themeId: string) => {
     const idx = THEMES.findIndex(t => t.id === themeId);
     if (idx !== -1) {
@@ -507,6 +578,9 @@ const App: React.FC = () => {
         onClearContent={handleClearContent}
         onCopy={handleCopy}
         onPDF={handlePDF}
+        onXiaohongshu={handleXiaohongshuExport}
+        previewMode={previewMode}
+        setPreviewMode={setPreviewMode}
       />
 
       <div
@@ -528,27 +602,36 @@ const App: React.FC = () => {
             spellCheck={false}
           />
 
-          {/* Floating Format Button */}
-          <FormatButton
-            text={markdown}
-            onFormat={handleFormatText}
-            onError={handleFormatError}
+          {/* Editor Toolbar */}
+          <EditorToolbar
+            markdown={markdown}
+            onMarkdownChange={setMarkdown}
+            onFormatError={handleFormatError}
+            previewMode={previewMode}
+            showToast={showToast}
+            textareaRef={textareaRef}
           />
         </div>
 
-        {/* Preview Pane - Improved Layout for Long Images */}
-        <div className={`
-          w-full md:w-1/2 h-full bg-gray-100 overflow-y-auto overflow-x-hidden relative flex flex-col items-center
-          ${activeMobileTab === 'preview' ? 'flex' : 'hidden md:flex'}
-        `}>
-          <div className="my-auto w-full flex justify-center">
-            <PreviewCard
-              ref={previewRef}
-              content={markdown}
-              theme={currentTheme}
-              typography={typography}
-              scale={1} // Base scale
-            />
+        {/* Preview Pane Container (Relative Wrapper) */}
+        <div
+          className={`
+            w-full md:w-1/2 h-full relative bg-gray-100/50 overflow-hidden
+            ${activeMobileTab === 'preview' ? 'block' : 'hidden md:block'}
+          `}
+        >
+          {/* Scrolling Content Layer */}
+          <div className="h-full overflow-y-auto px-4 py-12 md:px-8 md:py-20 preview-scroll-container">
+            <div className="max-w-2xl mx-auto min-h-full flex flex-col">
+              <div ref={previewRef} className="flex-1">
+                <PreviewCard
+                  markdown={markdown}
+                  theme={currentTheme}
+                  typography={typography}
+                  previewMode={previewMode}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -569,6 +652,20 @@ const App: React.FC = () => {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* Off-screen Export Container */}
+      {isExporting && (
+        <div style={{ position: 'fixed', left: '-9999px', top: 0, width: '1080px' }}>
+          <PreviewCard
+            ref={exportRef}
+            markdown={markdown}
+            theme={currentTheme}
+            typography={typography}
+            previewMode="xh"
+            onRenderComplete={finalizeExport}
+          />
+        </div>
       )}
     </div>
   );

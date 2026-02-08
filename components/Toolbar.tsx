@@ -1,6 +1,7 @@
+import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2, Copy, FileText, Image as ImageIcon, ChevronUp, Grid, Presentation, FileStack } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { Download, ALargeSmall, ListChecks, ChevronDown, Trash2, Copy, FileText, Image as ImageIcon, ChevronUp } from 'lucide-react';
-import { TypographyConfig, ThemeConfig } from '../types';
+import { TypographyConfig, ThemeConfig, PreviewMode } from '../types';
+import { APP_VERSION } from '../constants';
 
 interface ToolbarProps {
   onExport: () => void;
@@ -14,6 +15,9 @@ interface ToolbarProps {
   onClearContent: () => void;
   onCopy: () => void;
   onPDF: () => void;
+  onXiaohongshu: () => void;
+  previewMode: PreviewMode;
+  setPreviewMode: (mode: PreviewMode) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -27,7 +31,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onTabChange,
   onClearContent,
   onCopy,
-  onPDF
+  onPDF,
+  onXiaohongshu,
+  previewMode,
+  setPreviewMode
 }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -97,9 +104,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
     <div className="flex flex-wrap items-center gap-2 p-3 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
       <div className="flex items-center gap-2 mr-auto">
         <img src="/logo.png" alt="OrcaInsta" className="w-8 h-8 object-contain" />
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
-          OrcaInsta
-        </h1>
+        <div className="hidden sm:flex items-baseline gap-2">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            OrcaInsta
+          </h1>
+          <span className="text-[10px] text-gray-400 font-mono">v{APP_VERSION}</span>
+        </div>
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+        <button
+          onClick={() => setPreviewMode('long')}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${previewMode === 'long' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          title="长图模式"
+        >
+          <Presentation size={14} />
+          <span className="hidden sm:inline">长图</span>
+        </button>
+        <button
+          onClick={() => setPreviewMode('xh')}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${previewMode === 'xh' ? 'bg-white shadow-sm text-red-500' : 'text-gray-500 hover:text-gray-700'}`}
+          title="小红书分页模式"
+        >
+          <FileStack size={14} />
+          <span className="hidden sm:inline">分页</span>
+        </button>
       </div>
 
       {/* Format Controls - Show on Preview page for mobile, always show on desktop */}
@@ -177,6 +207,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <button
                 onClick={() => { onExport(); setIsExportMenuOpen(false); }}
                 className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                title="保存长图"
               >
                 <div className="bg-blue-50 p-1.5 rounded-md text-blue-600">
                   <ImageIcon size={16} />
@@ -184,6 +215,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <div>
                   <div className="font-medium">保存图片</div>
                   <div className="text-[10px] text-gray-400">下载 PNG 长图</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { onXiaohongshu(); setIsExportMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                title="适合小红书发布 (1080x1443)"
+              >
+                <div className="bg-red-50 p-1.5 rounded-md text-red-500">
+                  <Grid size={16} />
+                </div>
+                <div>
+                  <div className="font-medium">导出分页图片</div>
+                  <div className="text-[10px] text-gray-400">打包下载 (3:4)</div>
                 </div>
               </button>
 

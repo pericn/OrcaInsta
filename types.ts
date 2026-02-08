@@ -10,6 +10,8 @@ export interface ThemeConfig {
   shadowColor?: string;
 }
 
+export type PreviewMode = 'long' | 'xh';
+
 export interface TypographyConfig {
   fontSize: 'sm' | 'base' | 'lg' | 'xl';
   lineHeight: 'tight' | 'normal' | 'relaxed' | 'loose';

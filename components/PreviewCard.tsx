@@ -1,285 +1,507 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useMemo, useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ThemeConfig, TypographyConfig } from '../types';
+import remarkBreaks from 'remark-breaks';
+import { ThemeConfig, TypographyConfig, PreviewMode } from '../types';
 import { FONT_SIZE_MAP, LINE_HEIGHT_MAP } from '../constants';
-import { cleanCitations } from '../services/textUtils';
+import { cleanCitations, insertSpaceInMarkdown } from '../services/textUtils';
 
-interface PreviewCardProps {
-  content: string;
-  theme: ThemeConfig;
-  typography: TypographyConfig;
-  scale: number;
+interface PageData {
+   blocks: string[];
+   scale: number;
+   marginScale: number;
+   paddingScale: number;
+   lineHeight: number;
 }
 
+interface PreviewCardProps {
+   markdown: string;
+   theme: ThemeConfig;
+   typography: TypographyConfig;
+   previewMode: PreviewMode;
+   onRenderComplete?: () => void;
+}
+
+interface InternalViewProps {
+   markdown: string;
+   theme: ThemeConfig;
+   typography: TypographyConfig;
+   onRenderComplete?: () => void;
+}
+
+const XH_TARGET_WIDTH = 1080;
+const XH_TARGET_HEIGHT = 1443;
+const XH_BASE_MARGIN = 30; // 15px top + 15px bottom
+
 const PreviewCard = forwardRef<HTMLDivElement, PreviewCardProps>(
-  ({ content, theme, typography, scale }, ref) => {
-    
-    // Clean content for display (removes [cite] tags)
-    const displayContent = useMemo(() => cleanCitations(content), [content]);
+   ({ markdown, theme, typography, previewMode, onRenderComplete }, ref) => {
+      if (previewMode === 'long') {
+         return <LongModeView markdown={markdown} theme={theme} typography={typography} ref={ref} />;
+      }
+      return <XHModeView markdown={markdown} theme={theme} typography={typography} ref={ref} onRenderComplete={onRenderComplete} />;
+   }
+);
 
-    // Explicit mapping for inline styles to guarantee font-size application fallback
-    const fontSizeStyle = {
-      sm: '0.875rem',
-      base: '1rem',
-      lg: '1.125rem',
-      xl: '1.25rem'
-    };
+/**
+ * LONG MODE VIEW: Restored to Sharp Corners
+ */
+const LongModeView = forwardRef<HTMLDivElement, InternalViewProps>(
+   ({ markdown, theme, typography }, ref) => {
+      const cleanedMarkdown = useMemo(() => {
+         let content = cleanCitations(markdown);
+         content = insertSpaceInMarkdown(content);
+         content = content.replace(/>>--->>/g, '').replace(/<<---<</g, '');
+         return content;
+      }, [markdown]);
 
-    // Dynamic Heading Line Height Map based on body line height
-    const HEADING_LINE_HEIGHTS = {
-      tight: '1.3',
-      normal: '1.4',
-      relaxed: '1.5',
-      loose: '1.6'
-    };
-    const currentHeadingLineHeight = HEADING_LINE_HEIGHTS[typography.lineHeight];
+      const proseSize = FONT_SIZE_MAP[typography.fontSize as keyof typeof FONT_SIZE_MAP];
+      const lineHeight = LINE_HEIGHT_MAP[typography.lineHeight as keyof typeof LINE_HEIGHT_MAP];
+      const borderAccent = theme.accentColor.replace('text-', 'border-');
 
-    const style = {
-      transform: `scale(${scale})`,
-      transformOrigin: 'top center',
-      fontSize: fontSizeStyle[typography.fontSize], 
-      '--heading-line-height': currentHeadingLineHeight,
-    } as React.CSSProperties;
-
-    const proseSize = FONT_SIZE_MAP[typography.fontSize];
-    const lineHeight = LINE_HEIGHT_MAP[typography.lineHeight];
-
-    // Helper to get border color class from text color class (heuristic)
-        const borderAccent = theme.accentColor.replace('text-', 'border-');
-    
-        return (
-          <div 
-            className="w-full flex justify-center items-start overflow-visible"
-          >
-            {/* 
-               Capture Wrapper: 
-               1. Receives the ref for html-to-image
-               2. Has padding to ensure shadows/borders aren't clipped
-               3. Handles the scaling transform
-            */}
-                    <div
-                      ref={ref}
-                      className="p-10 transition-all duration-300 ease-in-out"
-                      style={style}
-                    >
-                      <div
-                        className={`
-                          relative flex flex-col flex-shrink-0
-                          w-[375px] sm:w-[450px]
-                          ${theme.background}
-                          ${theme.shadowColor || 'shadow-2xl'}
-                        `}
-                        style={{
-                          fontSize: fontSizeStyle[typography.fontSize],
+      return (
+         <div ref={ref} className="flex flex-col items-center gap-8">
+            <style>{`
+               .prose { color: inherit; }
+               .prose strong { color: inherit; font-weight: 700; opacity: 0.95; }
+               .prose h1 { font-weight: 700; font-size: 1.4em; border-bottom: 2px solid currentColor; margin-top: 1.2em; padding-bottom: 0.3em; margin-bottom: 0.8em; line-height: 1.3; }
+               .prose h2 { font-weight: 600; font-size: 1.25em; border-left: 4px solid currentColor; padding-left: 0.5em; margin-top: 1.6em; margin-bottom: 0.6em; line-height: 1.4; }
+               .prose h3 { font-weight: 700; font-size: 1.1em; margin-top: 1.4em; color: inherit; line-height: 1.5; }
+               .prose h4, .prose h5, .prose h6 { font-weight: 700; font-size: 1em; margin-top: 1.2em; color: inherit; line-height: 1.5; }
+               .prose thead th { color: inherit !important; opacity: 0.9; }
+            `}</style>
+            <div className={`relative flex flex-col flex-shrink-0 w-full max-w-[375px] sm:max-w-[500px] ${theme.background} ${theme.shadowColor}`}>
+               <div className={`m-2 sm:m-4 p-6 md:p-8 flex-1 flex flex-col min-h-0 ${theme.cardBg} ${theme.cardBorder} border ${theme.textColor} shadow-sm rounded-xl`}>
+                  <div className={`prose ${proseSize} max-w-none break-words ${lineHeight}`}>
+                     <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                           strong: ({ ...props }) => <strong {...props} />,
+                           h1: ({ ...props }) => <h1 className={theme.accentColor} {...props} />,
+                           h2: ({ ...props }) => <h2 className={theme.accentColor} {...props} />,
+                           blockquote: ({ ...props }) => (
+                              <blockquote className={`${theme.quoteBg} ${borderAccent} border-l-4 px-4 py-3 my-4 rounded-xl text-inherit`} {...props} />
+                           ),
                         }}
-                      >
-                         {/* Inner Card content */}
-                        <div className={`
-                           m-4 p-6 md:p-8 min-h-[600px]
-                           ${theme.cardBg} ${theme.cardBorder} border
-                           ${theme.textColor}
-                           shadow-sm
-                        `}>                   <div className={`prose ${proseSize} max-w-none break-words ${lineHeight} marker:text-current`}>
-                     <style>{`
-                       /* Global Color Inheritance for Prose */
-                       .prose { color: inherit; }
-                       .prose strong { color: inherit; font-weight: 700; opacity: 0.95; }
-                       .prose a { color: inherit; text-decoration: none; border-bottom: 1px dashed currentColor; opacity: 0.8; }
-                       .prose code { color: inherit; }
-                       
-                       /* Headers H1 - H6 */
-                       .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
-                          color: inherit;
-                          line-height: var(--heading-line-height);
-                          font-style: normal;
-                       }
-                       
-                       .prose h1 {
-                          font-weight: 700;
-                          font-size: 1.4em;
-                          margin-top: 1em;
-                          margin-bottom: 0.8em;
-                          padding-bottom: 0.3em;
-                          border-bottom: 2px solid currentColor;
-                          opacity: 0.95;
-                       }
-                       .prose h2 {
-                          font-weight: 600;
-                          font-size: 1.25em;
-                          margin-top: 1.6em;
-                          margin-bottom: 0.6em;
-                          padding-left: 0.5em;
-                          border-left: 4px solid currentColor;
-                          opacity: 0.9;
-                       }
-                       .prose h3 {
-                          font-weight: 600;
-                          font-size: 1.15em;
-                          margin-top: 1.8em;
-                          margin-bottom: 0.8em;
-                          opacity: 0.9;
-                       }
-                       .prose h4 {
-                          font-weight: 500;
-                          font-size: 1.05em;
-                          margin-top: 1.6em;
-                          margin-bottom: 0.6em;
-                          opacity: 0.85;
-                       }
-                       .prose h5 {
-                          font-weight: 500;
-                          font-size: 0.95em;
-                          margin-top: 1.4em;
-                          margin-bottom: 0.4em;
-                          opacity: 0.8;
-                          text-transform: uppercase;
-                          letter-spacing: 0.05em;
-                       }
-                       .prose h6 {
-                          font-weight: 500;
-                          font-size: 0.85em;
-                          margin-top: 1.2em;
-                          opacity: 0.7;
-                       }
-    
-                       /* Code Blocks - FORCE WRAP to avoid scrollbars in images */
-                       .prose code { 
-                          background: rgba(125,125,125,0.1); 
-                          padding: 0.2em 0.4em; 
-                          border-radius: 6px; 
-                          font-size: 0.85em; 
-                          font-weight: 500;
-                          font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-                       }
-                       /* Remove default backticks from inline code */
-                       .prose :where(code)::before { content: none !important; }
-                       .prose :where(code)::after { content: none !important; }
-    
-                                          .prose pre {
-                                             background: rgba(0,0,0,0.05);
-                                             color: inherit;
-                                             border-radius: 12px;
-                                             padding: 1rem;
-                                             overflow: visible !important; /* Ensure content is never clipped */
-                                             white-space: pre-wrap; /* Force wrap */
-                                             word-break: break-word; /* Break long words if needed */
-                                             scrollbar-width: none; /* Hide scrollbar Firefox */
-                                             -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
-                                             height: auto !important;
-                                          }
-                                          .prose pre::-webkit-scrollbar {
-                                             display: none; /* Hide scrollbar Chrome/Safari */
-                                          }
-                                          .prose pre code {
-                                             background: transparent;
-                                             padding: 0;
-                                             white-space: pre-wrap; /* Ensure inner code wraps */
-                                             overflow: visible !important;
-                                          }    
-                       /* Lists - Compact spacing */
-                       .prose ul > li, .prose ol > li {
-                          margin-top: 0.25em;
-                          margin-bottom: 0.25em;
-                       }
-                       .prose ul > li::marker { color: currentColor; opacity: 0.6; }
-                       .prose ol > li::marker { color: currentColor; opacity: 0.6; font-weight: 600; }
-    
-                       /* Blockquotes */
-                       .prose blockquote {
-                          font-style: normal;
-                       }
-                       .prose blockquote p:first-of-type::before { content: none; }
-                       .prose blockquote p:last-of-type::after { content: none; }
-                       
-                       /* Nested Blockquotes Overrides */
-                       .prose blockquote blockquote {
-                          margin-top: 0.8rem !important;
-                          margin-bottom: 0.8rem !important;
-                          background-color: rgba(125, 125, 125, 0.1) !important;
-                          border-left-width: 0 !important;
-                          padding: 0.8rem 1rem !important;
-                          border-radius: 0.75rem !important;
-                          opacity: 0.9;
-                       }
-    
-                       /* Tables - Enhanced Styling */
-                       .prose table {
-                          width: 100%;
-                          margin-top: 2em;
-                          margin-bottom: 2em;
-                          border-collapse: collapse;
-                          font-size: 0.9em;
-                          color: inherit; 
-                       }
-                       .prose thead {
-                          border-bottom-width: 2px;
-                          border-bottom-color: currentColor; 
-                       }
-                       .prose thead th {
-                          text-align: left;
-                          padding: 0.75rem 0.5rem;
-                          font-weight: 700;
-                          opacity: 0.9;
-                          vertical-align: bottom;
-                          color: inherit;
-                       }
-                       .prose tbody tr {
-                          border-bottom-width: 1px;
-                          border-bottom-color: currentColor;
-                          border-bottom: 1px solid rgba(127, 127, 127, 0.2);
-                       }
-                       .prose tbody td {
-                          padding: 0.75rem 0.5rem;
-                          vertical-align: top;
-                          opacity: 0.9;
-                          color: inherit;
-                       }
-                       .prose tbody tr:last-child {
-                          border-bottom: 0;
-                       }
-                     `}</style>
-                     
-                     <ReactMarkdown 
-                       remarkPlugins={[remarkGfm]}
-                       components={{
-                          // Apply Accent Colors
-                          strong: ({node, ...props}) => <strong className={`${theme.accentColor}`} {...props} />,
-                          a: ({node, ...props}) => <a className={`${theme.accentColor}`} {...props} />,
-                          h1: ({node, ...props}) => <h1 className={`${theme.accentColor} border-opacity-20`} {...props} />,
-                          h2: ({node, ...props}) => <h2 className={`${theme.accentColor} border-opacity-40`} {...props} />,
-                          // Custom Theme-Aware Blockquote
-                          blockquote: ({node, ...props}) => (
-                            <blockquote 
-                              className={`
-                                ${theme.quoteBg}
-                                ${borderAccent} 
-                                border-l-4 px-4 py-3 my-4 rounded-xl
-                                text-inherit
-                              `} 
-                              {...props} 
-                            />
-                          ),
-                       }}
                      >
-                       {displayContent}
+                        {cleanedMarkdown}
                      </ReactMarkdown>
-                   </div>
-                   
-                   {/* Footer Branding */}
-                   <div className="mt-14 pt-6 border-t border-current border-opacity-20 flex justify-between items-center text-[10px] tracking-wider uppercase opacity-50 font-semibold">
-                      <span className="flex items-center gap-1">
-                        Generated by OrcaInsta
-                      </span>
-                      <span>{new Date().toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')}</span>
-                   </div>
-                </div>
-              </div>
+                  </div>
+                  <div className="mt-auto pt-6 border-t border-current border-opacity-20 flex justify-between items-center text-[10px] opacity-50 font-semibold uppercase whitespace-nowrap">
+                     <span className="flex-shrink-0">Generated by OrcaInsta</span>
+                     <span className="flex-shrink-0">{new Date().toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')}</span>
+                  </div>
+               </div>
             </div>
-          </div>
-        );  }
+         </div>
+      );
+   }
+);
+
+/**
+ * XH MODE VIEW: Greedy Elastic Engine with Priority Squeeze
+ */
+const XHModeView = forwardRef<HTMLDivElement, InternalViewProps>(
+   ({ markdown, theme, typography, onRenderComplete }, ref) => {
+      const [paginatedPages, setPaginatedPages] = useState<PageData[]>([]);
+      const [containerWidth, setContainerWidth] = useState(480);
+      const containerRef = useRef<HTMLDivElement>(null);
+
+      // Trigger export callback when pages are ready
+      useEffect(() => {
+         if (paginatedPages.length > 0 && onRenderComplete) {
+            // Small delay to ensure DOM paint
+            const timer = setTimeout(onRenderComplete, 100);
+            return () => clearTimeout(timer);
+         }
+      }, [paginatedPages, onRenderComplete]);
+
+      // Measure container width for precision scaling
+      useEffect(() => {
+         if (!containerRef.current) return;
+         const obs = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+               const width = entry.contentRect.width;
+               if (width > 0) setContainerWidth(width);
+            }
+         });
+         obs.observe(containerRef.current);
+         return () => obs.disconnect();
+      }, []);
+
+      const previewScale = Math.min(containerWidth, 480) / XH_TARGET_WIDTH;
+      const scaledHeight = XH_TARGET_HEIGHT * previewScale;
+
+      const measureRef = useRef<HTMLDivElement>(null);
+
+      const cleanedMarkdown = useMemo(() => {
+         let content = cleanCitations(markdown);
+         content = insertSpaceInMarkdown(content);
+         return content;
+      }, [markdown]);
+
+      // Use same line height settings as LongMode
+      const proseLineHeight = LINE_HEIGHT_MAP[typography.lineHeight as keyof typeof LINE_HEIGHT_MAP] || 'leading-relaxed';
+
+      const multipliers: Record<string, number> = { sm: 0.85, base: 1.0, lg: 1.15, xl: 1.3 };
+      const typographyScale = multipliers[typography.fontSize as keyof typeof multipliers] || 1.0;
+
+      const BASE_FS = 34 * typographyScale;
+      const H1_FS = BASE_FS * 2.0; // Bigger H1 for XH Mode
+      const H2_FS = BASE_FS * 1.35;
+      const LH_NORMAL = { tight: 1.5, normal: 1.75, relaxed: 2.0, loose: 2.3 }[typography.lineHeight as keyof typeof LINE_HEIGHT_MAP] || 2.0;
+
+      const heightCache = useRef<Map<string, number>>(new Map());
+
+      useEffect(() => {
+         const measurePageHeight = (blocks: string[], lh: number, bfs: number, h1fs: number, h2fs: number) => {
+            const cacheKey = `${blocks.join('|')}_${lh}_${bfs}_${h1fs}_${h2fs}`;
+            if (heightCache.current.has(cacheKey)) return heightCache.current.get(cacheKey)!;
+
+            const div = document.createElement('div');
+            div.className = 'prose xh-measure-block';
+            div.style.width = `890px`;
+            div.style.fontSize = `${bfs}px`;
+            div.style.lineHeight = `${lh}`;
+            div.style.visibility = 'hidden';
+            div.style.position = 'absolute';
+
+            const html = blocks.map(b => {
+               const tb = b.trim();
+               if (tb.startsWith('# ')) return `<h1 style="font-size:${h1fs}px; line-height:${lh}; margin-top:1.2em; margin-bottom:0.8em;">${tb.replace(/^#\s+/, '')}</h1>`;
+               if (tb.startsWith('## ')) return `<h2 style="font-size:${h2fs}px; line-height:${lh}; margin-top:1.6em; margin-bottom:0.6em;">${tb.replace(/^##\s+/, '')}</h2>`;
+               if (tb.startsWith('### ')) return `<h3 style="font-size:${bfs * 1.15}px; line-height:${lh}; margin-top:1.4em; margin-bottom:0.6em;">${tb.replace(/^###\s+/, '')}</h3>`;
+               if (tb.includes('|') && tb.includes('-')) {
+                  const rows = tb.split('\n').filter(r => r.includes('|'));
+                  return `<table style="width:100%; border-collapse:collapse; margin:1em 0;">
+                    ${rows.map(() => `<tr><td style="padding:0.75em; border:1px solid #eee; line-height:${lh};">Table cell</td></tr>`).join('')}
+                  </table>`;
+               }
+               if (/^\s*[-*+\d.]/.test(tb)) {
+                  const items = tb.split('\n').filter(l => /^\s*[-*+\d.]/.test(l));
+                  // Use actual list item height with proper line height
+                  return `<ul style="margin:1em 0; padding-left:1.5em;">${items.map(item => `<li style="margin:0.75em 0; line-height:${lh};">${item.replace(/^\s*[-*+\d.]+\s*/, '')}</li>`).join('')}</ul>`;
+               }
+               return `<p style="margin:0.8em 0; line-height:${lh};">${tb}</p>`;
+            }).join('');
+
+            div.innerHTML = html;
+            measureRef.current!.appendChild(div);
+            const height = div.offsetHeight;
+            measureRef.current!.removeChild(div);
+            heightCache.current.set(cacheKey, height);
+            return height;
+         };
+
+         const paginate = () => {
+            if (!measureRef.current) return;
+            heightCache.current.clear(); // Clear cache on each paginate
+            const measureEl = measureRef.current;
+            measureEl.innerHTML = '';
+
+            // Content area calculation - must match actual CSS
+            // XH_TARGET_HEIGHT = 1443
+            // margin = 18px * marginScale (at 1.0 = 36px top+bottom)
+            // padding = 100px * paddingScale (at 1.0 = 200px top+bottom)
+            // paddingBottom = 130px (fixed footer zone)
+            // Safety buffer = 40px to prevent edge-case overflow
+            const MARGIN_TOTAL = 36; // 18px * 2
+            const PADDING_TOP = 100;
+            const FOOTER_ZONE = 130;
+            const SAFETY_BUFFER = 40; // Extra safety margin
+            const CONTENT_MAX_H = XH_TARGET_HEIGHT - MARGIN_TOTAL - PADDING_TOP - FOOTER_ZONE - SAFETY_BUFFER;
+            const OVERFLOW_THRESHOLD = 1.05; // 105% - more conservative to prevent cutoff
+
+            // --- Step 1: Parse markers ---
+            // >>--->> = force new page
+            // <<---<< = mark PREVIOUS section (from last >>--->> to here) for compression
+            let tempMarkdown = cleanedMarkdown;
+
+            // Handle split markers first (>>--->> creates new pages)
+            const parts = tempMarkdown.split('>>--->>');
+            const sections: { text: string; forcePage: boolean; forceCompress: boolean }[] = [];
+
+            for (let i = 0; i < parts.length; i++) {
+               const part = parts[i];
+
+               // Check if this section contains <<---<< (compress marker)
+               // <<---<< means: compress content BEFORE this marker only
+               if (part.includes('<<---<<')) {
+                  const [beforeCompress, afterCompress] = part.split('<<---<<');
+                  // The part BEFORE <<---<< gets compressed
+                  if (beforeCompress.trim()) {
+                     sections.push({
+                        text: beforeCompress.trim(),
+                        forcePage: i > 0,
+                        forceCompress: true
+                     });
+                  }
+                  // The part AFTER <<---<< is normal content (on a new page)
+                  if (afterCompress && afterCompress.trim()) {
+                     sections.push({
+                        text: afterCompress.trim(),
+                        forcePage: true,
+                        forceCompress: false
+                     });
+                  }
+               } else {
+                  // No compress marker - normal section
+                  const cleanText = part.trim();
+                  if (cleanText || i > 0) {
+                     sections.push({
+                        text: cleanText,
+                        forcePage: i > 0,
+                        forceCompress: false
+                     });
+                  }
+               }
+            }
+
+            const finalPages: PageData[] = [];
+
+            // --- Step 2: Helper to split a block into lines ---
+            // IMPORTANT: Tables and code blocks should NOT be split
+            const splitBlockIntoLines = (block: string): string[] => {
+               const trimmed = block.trim();
+
+               // Tables: DO NOT split - they are atomic blocks
+               // Tables contain | characters and usually have a separator row with ---
+               if (trimmed.includes('|') && trimmed.includes('-')) {
+                  return [trimmed]; // Return as single atomic block
+               }
+
+               // Code blocks: DO NOT split
+               if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+                  return [trimmed];
+               }
+
+               // Lists: split by individual items
+               if (/^\s*[-*+\d.]/.test(trimmed)) {
+                  return trimmed.split('\n').filter(l => l.trim());
+               }
+
+               // Paragraphs: split by lines (allow line-level pagination)
+               return trimmed.split('\n').filter(l => l.trim());
+            };
+
+            // --- Step 3: Squeeze function (compress when needed) ---
+            const getSqueeze = (blocks: string[], forceCompress: boolean): PageData => {
+               const baseH = measurePageHeight(blocks, LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+
+               if (!forceCompress && baseH <= CONTENT_MAX_H) {
+                  return { blocks, scale: 1.0, marginScale: 1.0, paddingScale: 1.0, lineHeight: LH_NORMAL };
+               }
+
+               // Apply compression for overflow or forced sections
+               if (baseH <= CONTENT_MAX_H * 1.05) {
+                  return { blocks, scale: 1.0, marginScale: 0.7, paddingScale: 0.7, lineHeight: LH_NORMAL };
+               }
+               const tightH = measurePageHeight(blocks, 1.4, BASE_FS, H1_FS, H2_FS);
+               if (tightH <= CONTENT_MAX_H * 1.05) {
+                  return { blocks, scale: 1.0, marginScale: 0.6, paddingScale: 0.6, lineHeight: 1.4 };
+               }
+               // Aggressive scale
+               const scale = Math.max(0.75, CONTENT_MAX_H / tightH);
+               return { blocks, scale, marginScale: 0.5, paddingScale: 0.5, lineHeight: 1.3 };
+            };
+
+            // --- Step 4: Process each section ---
+            for (const section of sections) {
+               const rawBlocks = section.text.split(/\n\n+/).filter(b => b.trim());
+
+               if (section.forcePage && rawBlocks.length === 0) {
+                  finalPages.push({ blocks: [' '], scale: 1.0, marginScale: 1.0, paddingScale: 1.0, lineHeight: LH_NORMAL });
+                  continue;
+               }
+
+               // Force compress: Put entire section on one page
+               if (section.forceCompress) {
+                  finalPages.push(getSqueeze(rawBlocks, true));
+                  continue;
+               }
+
+               // --- H1 Cover Page Logic ---
+               if (finalPages.length === 0 && rawBlocks.length > 0 && rawBlocks[0].trim().startsWith('# ')) {
+                  // Find all blocks that should be on the cover (H1 + following until next H1/H2)
+                  let coverBlocks: string[] = [rawBlocks[0]];
+                  let restStart = 1;
+                  for (let i = 1; i < rawBlocks.length; i++) {
+                     const tb = rawBlocks[i].trim();
+                     if (tb.startsWith('# ') || tb.startsWith('## ')) {
+                        restStart = i;
+                        break;
+                     }
+                     coverBlocks.push(rawBlocks[i]);
+                     restStart = i + 1;
+                  }
+
+                  const coverH = measurePageHeight(coverBlocks, LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+                  if (coverH <= CONTENT_MAX_H) {
+                     // Fits on one page - use as cover
+                     finalPages.push({ blocks: coverBlocks, scale: 1.0, marginScale: 1.0, paddingScale: 1.0, lineHeight: LH_NORMAL });
+                     // Process remaining blocks
+                     const remaining = rawBlocks.slice(restStart);
+                     if (remaining.length > 0) {
+                        // Re-process remaining blocks
+                        let currentPage: string[] = [];
+                        for (const block of remaining) {
+                           const candidateH = measurePageHeight([...currentPage, block], LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+                           if (candidateH > CONTENT_MAX_H * OVERFLOW_THRESHOLD && currentPage.length > 0) {
+                              finalPages.push(getSqueeze(currentPage, false));
+                              currentPage = [block];
+                           } else {
+                              currentPage.push(block);
+                           }
+                        }
+                        if (currentPage.length > 0) finalPages.push(getSqueeze(currentPage, false));
+                     }
+                     continue;
+                  }
+                  // Doesn't fit - fall through to normal processing
+               }
+
+               // --- Normal Processing with Line-Level Splitting ---
+               let currentPage: string[] = [];
+
+               for (const block of rawBlocks) {
+                  const candidateH = measurePageHeight([...currentPage, block], LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+
+                  if (candidateH > CONTENT_MAX_H * OVERFLOW_THRESHOLD) {
+                     if (currentPage.length > 0) {
+                        // Priority 1: Try to split the current block into lines
+                        const lines = splitBlockIntoLines(block);
+                        if (lines.length > 1) {
+                           // Try to fit lines one by one
+                           for (const line of lines) {
+                              const lineH = measurePageHeight([...currentPage, line], LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+                              if (lineH > CONTENT_MAX_H * OVERFLOW_THRESHOLD && currentPage.length > 0) {
+                                 finalPages.push(getSqueeze(currentPage, false));
+                                 currentPage = [line];
+                              } else {
+                                 currentPage.push(line);
+                              }
+                           }
+                        } else {
+                           // Can't split - push current page and start new
+                           finalPages.push(getSqueeze(currentPage, false));
+                           currentPage = [block];
+                        }
+                     } else {
+                        // First block exceeds - try line split or just add
+                        const lines = splitBlockIntoLines(block);
+                        if (lines.length > 1) {
+                           for (const line of lines) {
+                              const lineH = measurePageHeight([...currentPage, line], LH_NORMAL, BASE_FS, H1_FS, H2_FS);
+                              if (lineH > CONTENT_MAX_H * OVERFLOW_THRESHOLD && currentPage.length > 0) {
+                                 finalPages.push(getSqueeze(currentPage, false));
+                                 currentPage = [line];
+                              } else {
+                                 currentPage.push(line);
+                              }
+                           }
+                        } else {
+                           currentPage.push(block);
+                        }
+                     }
+                  } else {
+                     currentPage.push(block);
+                  }
+               }
+
+               if (currentPage.length > 0) finalPages.push(getSqueeze(currentPage, false));
+            }
+
+            setPaginatedPages(finalPages.length > 0 ? finalPages : [{ blocks: [' '], scale: 1.0, marginScale: 1.0, paddingScale: 1.0, lineHeight: LH_NORMAL }]);
+         };
+
+         const timer = setTimeout(paginate, 200);
+         return () => clearTimeout(timer);
+      }, [cleanedMarkdown, typographyScale, LH_NORMAL, BASE_FS, H1_FS, H2_FS]);
+
+      const borderAccent = theme.accentColor.replace('text-', 'border-');
+
+      return (
+         <div ref={ref} className="w-full flex flex-col items-center pb-32 xh-engine">
+            {/* Measurement layer for ResizeObserver */}
+            <div ref={containerRef} className="w-full max-w-[480px] h-0 invisible" />
+
+            <style>{`
+               .prose { color: inherit !important; }
+               .prose strong { color: inherit; font-weight: 700; opacity: 0.95; }
+               .xh-engine .prose, .xh-measure-block { font-size: ${BASE_FS}px !important; max-width: none !important; }
+               .xh-engine .prose h1, .xh-measure-block h1 { font-size: ${H1_FS}px !important; margin-top: 1.2em; margin-bottom: 0.8em; line-height: 1.2; }
+               .xh-engine .prose h2, .xh-measure-block h2 { font-size: ${H2_FS}px !important; margin-top: 1.6em; margin-bottom: 0.6em; line-height: 1.3; }
+               .xh-engine .prose h3, .xh-measure-block h3 { font-size: ${BASE_FS * 1.15}px !important; font-weight: 700; margin-top: 1.4em; line-height: 1.4; }
+               .xh-engine .prose h4, .xh-engine .prose h5, .xh-engine .prose h6, .xh-measure-block h4, .xh-measure-block h5, .xh-measure-block h6 { font-size: ${BASE_FS}px !important; font-weight: 700; margin-top: 1.2em; color: inherit; line-height: 1.5; }
+               .xh-engine .prose p, .xh-engine .prose li, .xh-measure-block p, .xh-measure-block li { margin-top: 0.6em; margin-bottom: 0.6em; }
+               .xh-engine .prose thead th, .xh-measure-block thead th { color: inherit !important; opacity: 0.9; }
+            `}</style>
+            <div ref={measureRef} className="fixed invisible" style={{ width: `${XH_TARGET_WIDTH}px`, top: '-9999px' }} />
+            {paginatedPages.map((page, idx) => {
+               const pageContent = page.blocks.join('\n\n').replace(/<<---<</g, '');
+               const isCover = idx === 0 && pageContent.trim().startsWith('# ');
+               const isLast = idx === paginatedPages.length - 1;
+
+               return (
+                  <div key={idx} className="w-full max-w-[480px] mx-auto mb-10 relative" style={{ height: `${scaledHeight}px` }}>
+                     <div className="absolute top-0 left-1/2 origin-top"
+                        style={{
+                           width: `${XH_TARGET_WIDTH}px`,
+                           height: `${XH_TARGET_HEIGHT}px`,
+                           marginLeft: `-${XH_TARGET_WIDTH / 2}px`,
+                           transform: `scale(${previewScale})`
+                        }}>
+                        <div className={`relative flex flex-col w-full h-full xh-page ${theme.background} border shadow-2xl overflow-hidden`}>
+                           <div className={`flex-1 flex flex-col ${theme.cardBg} ${theme.cardBorder} border ${theme.textColor}`}
+                              style={{
+                                 margin: `${18 * page.marginScale}px`,
+                                 padding: `${100 * page.paddingScale}px`,
+                                 paddingBottom: '130px', // Fixed area for footer zone
+                                 justifyContent: isCover ? 'center' : 'flex-start'
+                              }}>
+                              <div className={`prose break-words ${isCover ? 'text-center' : ''}`}
+                                 style={{
+                                    transform: `scale(${page.scale})`,
+                                    transformOrigin: 'top center',
+                                    width: '100%',
+                                    lineHeight: `${page.lineHeight}`
+                                 }}>
+                                 <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    components={{
+                                       strong: ({ ...props }) => <strong {...props} />,
+                                       h1: ({ ...props }) => <h1 className={theme.accentColor} {...props} />,
+                                       h2: ({ ...props }) => <h2 className={theme.accentColor} {...props} />,
+                                       h3: ({ ...props }) => <h3 className={theme.accentColor} {...props} />,
+                                       h4: ({ ...props }) => <h4 className={theme.accentColor} {...props} />,
+                                       h5: ({ ...props }) => <h5 className={theme.accentColor} {...props} />,
+                                       h6: ({ ...props }) => <h6 className={theme.accentColor} {...props} />,
+                                       blockquote: ({ ...props }) => <blockquote className={`${theme.quoteBg} ${borderAccent} border-l-4 px-4 py-3 my-4 rounded-xl text-inherit`} {...props} />,
+                                    }}>{pageContent}</ReactMarkdown>
+                              </div>
+
+                              {/* Footer Zone (Fixed at bottom of inner card) */}
+                              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[calc(100%-160px)] flex justify-between items-center opacity-40 font-bold uppercase tracking-wider text-[18px] whitespace-nowrap">
+                                 {(idx === 0 || isLast) ? (
+                                    <>
+                                       <span className="flex-shrink-0">Generated by OrcaInsta</span>
+                                       <span className="flex-shrink-0">{new Date().toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')}</span>
+                                    </>
+                                 ) : <div />}
+                                 {/* Hide page number on first and last pages */}
+                                 {!(idx === 0 || isLast) && (
+                                    <span className="absolute right-0">{idx + 1} / {paginatedPages.length}</span>
+                                 )}
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               );
+            })}
+         </div>
+      );
+   }
 );
 
 PreviewCard.displayName = 'PreviewCard';
-
 export default PreviewCard;

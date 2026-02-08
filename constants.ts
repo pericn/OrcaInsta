@@ -1,4 +1,4 @@
-import { ThemeConfig } from './types';
+import { ThemeConfig, TypographyConfig } from './types';
 
 export const DEFAULT_MARKDOWN = `# 🌊 OrcaInsta 使用指南
 
@@ -148,3 +148,12 @@ export const LINE_HEIGHT_MAP = {
   relaxed: 'leading-[2.0]',
   loose: 'leading-[2.3]',
 };
+
+export const TYPOGRAPHY_CONFIGS: Record<string, TypographyConfig> = {
+  base: {
+    fontSize: 'base',
+    lineHeight: 'loose',
+  }
+};
+
+export const APP_VERSION = '1.5.0';
